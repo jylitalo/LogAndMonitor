@@ -1,5 +1,6 @@
 #!/usr/bin/python
-
+#
+# Written by Juha Ylitalo <juha@ylitalot.net>
 ###
 # Analyze ssh connections from /var/log/secure*
 ###
@@ -89,10 +90,16 @@ if __name__ == '__main__':
     ###
     # args
     ###
-    opts,args = getopt.getopt(sys.argv[1:],'a',['all'])
-    all = 0
-    for key,arg in opts:
-        if key == '-a' or key == '--all': all = 1
+    try:
+        opts,args = getopt.getopt(sys.argv[1:],'a',['all'])
+        all = 0
+        for key,arg in opts:
+            if key == '-a' or key == '--all': all = 1
+    except getopt.GetoptError:
+        print '''Usage: ssh_connections.py [-a] [--all]
+        
+-a and --all scans all /var/log/secure* files (default behaviour: only scan /var/log/secure)'''
+        sys.exit(1)
     ###
     # filenames to be scanned
     ###
