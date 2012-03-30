@@ -5,7 +5,7 @@
 # $Id: check_load.php 367 2008-01-23 18:10:31Z pitchfork $
 #
 #
-$opt[1] = "--vertical-label Load -l0  --title \"CPU Load for $hostname / $servicedesc\" ";
+$opt[1] = "--vertical-label Connections -l0  --title \"Network connections on $hostname\" ";
 #
 #
 #
