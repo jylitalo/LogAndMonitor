@@ -1,0 +1,19 @@
+#!/usr/bin/python
+
+import os
+import sys
+
+if __name__ == '__main__':
+	numbers = {}
+	for t in ["total","root","apache","nagios"]: numbers[t] = 0
+	header = 1
+	p = os.popen('/bin/ps -ef','r')
+	for line in p:
+		if header: header = 0
+		else:
+			numbers["total"] += 1
+			t = line.split(' ')[0]
+			if t in numbers: numbers[t] += 1
+	p.close()
+	print "OK: %d processes|total=%d;root=%d;apache=%d;nagios=%d" % (numbers["total"],numbers["total"],numbers["root"],numbers["apache"],numbers["nagios"])
+	sys.exit(0)
