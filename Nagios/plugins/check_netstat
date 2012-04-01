@@ -5,8 +5,8 @@ import sys
 
 if __name__ == '__main__':
 	p = os.popen('/bin/netstat -anp','r')
-	socket_types = ["tcp","udp","unix"]
 	numbers = {"total":0}
+	socket_types = ["tcp","udp","unix"]
 	for t in socket_types: numbers[t] = 0
 	for line in p:
 		for t in socket_types:
@@ -14,6 +14,7 @@ if __name__ == '__main__':
 				numbers[t] += 1
 				numbers["total"] += 1
 				break
+	p.close()
 	print "OK: %d sockets|total=%d;tcp=%d;udp=%d;unix=%d" % (numbers["total"],numbers["total"],numbers["tcp"],numbers["udp"],numbers["unix"])
 	sys.exit(0)
 
