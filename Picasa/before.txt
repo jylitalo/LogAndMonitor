@@ -1,0 +1,51 @@
+/Users/jylitalo/kuvat/jpg/2005/06/img_5612.jpg:
+ Exif header length: 58370 bytes, Intel format
+ IFD 0 (main image) at offset 358:
+  ImageWidth(S)=[3512]
+  ImageLength(S)=[2340]
+  BitsPerSample(S)=[8, 8, 8]
+  Compression(S)=[1]
+  PhotometricInterpretation(S)=[2]
+  Make(A)='Canon'
+  Model(A)='Canon EOS 20D'
+  Orientation(S)=[1]
+  SamplesPerPixel(S)=[3]
+  XResolution(R)=[629145600/2097152]
+  YResolution(R)=[629145600/2097152]
+  PlanarConfiguration(S)=[1]
+  ResolutionUnit(S)=[2]
+  Software(A)='Bibble 4.2'
+  DateTime(A)='2005:06:05 14:54:10'
+  ExifOffset(L)=[8]
+ Exif SubIFD at offset 8:
+  Compression(S)=[1]
+  ExposureTime(R)=[10737418/1073741824]
+  FNumber(R)=[751619264/134217728]
+  ExposureProgram(S)=[3]
+  ISOSpeedRatings(S)=[200]
+  DateTimeOriginal(A)='2005:06:05 14:54:10'
+  DateTimeDigitized(A)='2005:06:05 14:54:10'
+  ShutterSpeedValue(R)=[891723776/134217728]
+  ApertureValue(R)=[667176960/134217728]
+  ExposureBiasValue(R)=[0/1]
+  Flash(S)=[16]
+  FocalLength(R)=[285212672/16777216]
+  ExifImageWidth(S)=[3512]
+  ExifImageLength(S)=[2340]
+  FocalPlaneXResolution(R)=[1037912512/262144]
+  FocalPlaneYResolution(R)=[1037912512/262144]
+  FocalPlaneResolutionUnit(S)=[2]
+  0xA402(S)=[0]
+  0xA403(S)=[0]
+  0xA406(S)=[0]
+ IFD 1 (thumbnail) at offset 58230:
+  ImageWidth(S)=[160]
+  ImageLength(S)=[120]
+  BitsPerSample(S)=[8, 8, 8]
+  Compression(S)=[1]
+  PhotometricInterpretation(S)=[2]
+  StripOffsets(L)=[630]
+  Orientation(S)=[1]
+  SamplesPerPixel(S)=[3]
+  StripByteCounts(L)=[57600]
+  PlanarConfiguration(S)=[1]

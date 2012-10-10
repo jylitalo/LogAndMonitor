@@ -1,0 +1,23 @@
+/Users/jylitalo/kuvat/jpg/2005/06/img_5612.jpg:
+ Exif header length: 490 bytes, Intel format
+ IFD 0 (main image) at offset 8:
+  ImageWidth(S)=[3512]
+  ImageLength(S)=[2340]
+  BitsPerSample(S)=[8, 8, 8]
+  Compression(S)=[1]
+  PhotometricInterpretation(S)=[2]
+  Make(A)='Canon'
+  Model(A)='Canon EOS 20D'
+  Orientation(S)=[1]
+  SamplesPerPixel(S)=[3]
+  XResolution(R)=[629145600/2097152]
+  YResolution(R)=[629145600/2097152]
+  PlanarConfiguration(S)=[1]
+  ResolutionUnit(S)=[2]
+  Software(A)='Bibble 4.2'
+  DateTime(A)='2012:10:10 19:58:55'
+  ExifOffset(L)=[292]
+  GPSInfo(L)=[356]
+ Exif SubIFD at offset 292:
+  ExifVersion(U)=[48, 50, 50, 48]
+  0xA420(A)='a1fb06e290517f67bfe994d4ac79f481'
