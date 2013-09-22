@@ -6,6 +6,9 @@ import sys
 import exifdump
 
 class LensAnalysesOnOctopress(object):
+  def __init__(self):
+    self.debug = False
+
   def process_file(self,fname):
     """ 
       Check if _fname_ has EXIF information with focal length that was used 
@@ -13,6 +16,7 @@ class LensAnalysesOnOctopress(object):
       Return None, if focal length was not found
       Return focal length as string with "mm" suffix, if focal length was found.
     """
+    if self.debug: print("### processing " + fname)
     fl = None
     f = open(fname)
     data = f.read(12)
@@ -40,6 +44,8 @@ class LensAnalysesOnOctopress(object):
               fl = values[0].num
               break
     f.close()
+    if self.debug: print("### %s -> %d" % (fname,fl))
+    if fl > 60: fl=75
     if fl: return str(fl) + "mm"
     else: return None
 
@@ -53,6 +59,7 @@ class LensAnalysesOnOctopress(object):
   def scan(self,dir):
     focal_lengths = {'missing':[]}
     for fname in glob.glob("%s%s*.markdown" % (dir,os.sep)):
+      if self.debug: print("### Checking " + fname)
       f = open(fname)
       url_name = "/" + os.path.basename(fname)[11:-9] + "/"
       """ 
@@ -68,11 +75,15 @@ class LensAnalysesOnOctopress(object):
           status = 1 ... within blog post header
           status = 2 ... within blog post body
         """
-        if line.startswith("---"): status += 1
+        if line.startswith("---"): 
+          status += 1
+          if self.debug: print("### status => %d" % (status))
         elif status == 1 and line.startswith("title: "): 
           title = line[7:].strip()
-        elif status == 2 and line.startswith("![/"):
+          if self.debug: print("### found title " + title)
+        elif status == 2 and line.startswith("!["):
           img_name = line.split('](',1)[1].split(')',1)[0]
+          if self.debug: print("### found image " + img_name)
           full_img_name = self.map_filename(img_name)
           # print full_img_name
           assert os.access(full_img_name, os.R_OK), "Unable to read img_file (%s) from %s" % (img_name,fname)
@@ -96,8 +107,11 @@ if __name__ == '__main__':
       "missing" : "Not available",
       "12mm" : "Olympus M.Zuiko 12mm f/2",
       "25mm" : "Panasonic Leica DG Summilux 25mm f/1.4",
-      "60mm" : "Olympus M.Zuiko 60mm f/2.8 Macro"
+      "60mm" : "Olympus M.Zuiko 60mm f/2.8 Macro",
+      "75mm" : "Olympus M.Zuiko 75-300mm f/4.8-6.7 II"
       }
+  # print("focal lengths = " + str(focal_lengths.keys()))
+  # print("focal lengths = " + str(lens_name.keys()))
   k = lens_name.keys()
   k.sort()
   f = open(ofname,"w")
