@@ -7,7 +7,10 @@ import sys
 class AWS_S3_Usage:
   def __init__(self):
     self.file_stats = {}
+    self.user_agent = {}
     self.total_bytecount = 0
+    self.ignored_operations = ["REST.DELETE.OBJECT","REST.GET.BUCKET","REST.PUT.LOGGING_STATUS","REST.PUT.OBJECT","REST.PUT.WEBSITE","WEBSITE.HEAD.OBJECT"]
+    self.ignored_statuses = ["301","304"]
 
   def _split_line(self,line):
     line = line.strip()
@@ -46,9 +49,8 @@ class AWS_S3_Usage:
     # 13 total time
     # 14 turn-around time
     # 15 referrer
-    # 16 user-agent
+    USER_AGENT = 16
     # 17 version id
-    ignored_operations = ["REST.DELETE.OBJECT","REST.GET.BUCKET","REST.PUT.LOGGING_STATUS","REST.PUT.OBJECT","REST.PUT.WEBSITE","WEBSITE.HEAD.OBJECT"]
     for fname in glob.glob("%s/*" % (sys.argv[1])):
       f = open(fname,"r")
       for line in f:
@@ -56,9 +58,10 @@ class AWS_S3_Usage:
         if not fields or len(fields) < 18: continue
         uri = fields[BUCKET] + "/" + fields[FILE_NAME]
         bytecount = 0
+        user_agent = fields[USER_AGENT]
         # if fields[FILE_NAME] == '-': print("### " + line)
-        if fields[OPERATION] in ignored_operations: pass
-        elif fields[HTTP_STATUS] in ["301","304"]: pass
+        if fields[OPERATION] in self.ignored_operations: pass
+        elif fields[HTTP_STATUS] in self.ignored_statuses: pass
         else: bytecount = int(fields[BYTES_SENT])
         self.total_bytecount += bytecount
 
@@ -67,19 +70,25 @@ class AWS_S3_Usage:
           self.file_stats[uri][1] += 1
         else:
           self.file_stats[uri] = [bytecount,1]
+        if user_agent in self.user_agent:
+          self.user_agent[user_agent][0] += bytecount
+          self.user_agent[user_agent][1] += 1
+        else:
+          self.user_agent[user_agent] = [bytecount,1]
         # print("?!? %s : %d => %d" % (uri,bytecount,file_stats[uri][0]))
 
-  def _organize_by_size(self):
-    files_by_size = {}
-    for key in self.file_stats:
-      bytecount = self.file_stats[key][0]
-      msg = "%s (%d)" % (key, self.file_stats[key][1])
-      if bytecount in files_by_size: files_by_size[bytecount].append(msg)
-      else: files_by_size[bytecount] = [msg]
-    return files_by_size
+  def _organize_by_size(self,stats):
+    by_size = {}
+    for key in stats:
+      bytecount = stats[key][0]
+      msg = "%s (%d)" % (key, stats[key][1])
+      if bytecount in by_size: by_size[bytecount].append(msg)
+      else: by_size[bytecount] = [msg]
+    return by_size
 
-  def print_report(self):
-    files_by_size = self._organize_by_size()
+  def _print_report(self, stats):
+    files_by_size = self._organize_by_size(stats)
+    if 0 in files_by_size: del files_by_size[0]
     size_list = files_by_size.keys()
     size_list.sort()
     size_list.reverse()
@@ -91,7 +100,16 @@ class AWS_S3_Usage:
         print("%d (%d MB / %.2f%%): %s" % (size,mb,100.0*size/self.total_bytecount,fname)) 
     print("%d (%d MB) in TOTAL" % (self.total_bytecount, self.total_bytecount / (1024*1024)))
 
+  def files_report(self): self._print_report(self.file_stats)
+  def agent_report(self): self._print_report(self.user_agent)
+
 if __name__ == '__main__':
   s3 = AWS_S3_Usage()
   s3.scan(sys.argv[1])
-  s3.print_report()
+  print("BANDWIDTH USAGE BY URI")
+  print("======================")
+  s3.files_report()
+  print("")
+  print("BANDWIDTH USAGE BY USER-AGENT")
+  print("=============================")
+  s3.agent_report()
