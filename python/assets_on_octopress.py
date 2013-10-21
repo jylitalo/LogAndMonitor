@@ -12,18 +12,18 @@ class AssetsOnOctopress(object):
     self._found = []
     self._linked = {}
 
-  def _extract_from_markdown(self, line):
+  def _extract_from_markdown(self, line, name):
     for field in line.split("(/")[1:]:
       field = "/" + field[:field.find(')')]
       if ' "' in field: field = field[:field.find(' "')]
       if field.startswith("/images/") or field.startswith("/assets/"):
-         if field in self._linked: self._linked[field] += 1
-         else: self._linked[field] = 1
+         if field in self._linked: self._linked[field].append(name)
+         else: self._linked[field] = [name]
     for field in line.split('"/')[1:]:
       field = "/" + field[:field.find('"',1)]
       if field.startswith("/images/") or field.startswith("/assets/"):
-         if field in self._linked: self._linked[field] += 1
-         else: self._linked[field] = 1
+         if field in self._linked: self._linked[field].append(name)
+         else: self._linked[field] = [name]
 
   def _scan_tree(self,subdir):
     ret = []
@@ -68,7 +68,7 @@ class AssetsOnOctopress(object):
 
   def _validate_found(self, fname): self._found.append(fname)
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
-  def _validate_missing(self, fname): print("MISSING: '%s'" % (fname))
+  def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
   def _ignore(self, fname):
     if fname.startswith("/assets/jwplayer"): return True
@@ -133,7 +133,7 @@ class ValidateAndFixAssets(AssetsOnOctopress):
     original_fname = self._original_image(fname)
     fname = self._dir + fname
     if not original_fname:
-      print("### unable to find original_image for " + fname)
+      print("### unable to find original_image for %s (references: %s)" % (fname,", ".join(self._linked[fname])))
     if fname.endswith("_t.jpg"):
       cmdline = "convert -thumbnail 150x150^ -gravity center -extent 150x150 %s %s" % (original_fname,fname)
       print("### " + cmdline)
