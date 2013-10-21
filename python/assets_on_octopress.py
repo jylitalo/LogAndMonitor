@@ -70,14 +70,18 @@ class AssetsOnOctopress(object):
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s'" % (fname))
 
+  def _ignore(self, fname):
+    if fname.startswith("/assets/jwplayer"): return True
+    elif fname.startswith("/images/") and fname.count('/') == 2: return True
+    return False
+
   def remove_matches(self):
     # print("found_images = %d" % (len(self._found_images)))
     if self._found: self._found.sort()
     if self._found:
       for fname in self._found:
         if fname in self._linked: del self._linked[fname]
-        elif fname.startswith("/assets/jwplayer"): pass
-        elif fname.startswith("/images/") and fname.count('/') == 2: pass
+        elif self._ignore(fname): pass 
         else: self._validate_waste(fname)
     if self._linked: 
       linked_keys = self._linked.keys()
@@ -102,8 +106,7 @@ class ValidateAndFixAssets(AssetsOnOctopress):
     return None
 
   def _validate_found(self,fname):
-    if fname.startswith("/assets/"): return
-    elif fname.startswith("/images/") and fname.count('/') == 2: return
+    if self._ignore(fname): return
     # print "### validating " + fname
     original_fname = self._original_image(fname)
     if original_fname:
