@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import fnmatch
 import glob
 import os
 import stat
@@ -39,10 +40,12 @@ class AssetsOnOctopress(object):
   def scan(self):
     begin_index = len("yyyy-mm-dd")
     end_index = len(".markdown")
-    pattern = "%s/_posts/*.markdown" % (self._dir)
-    markdown_files = glob.glob(pattern)
+    markdown_files = []
+    for root,dirnames,filenames in os.walk(self._dir):
+      for fname in fnmatch.filter(filenames,"*.markdown"):
+        markdown_files.append(os.path.join(root,fname))
     if not markdown_files:
-      print("### Unable to find any markdown files from " + pattern)
+      print("### Unable to find any markdown files from " + self._dir)
       sys.exit(1)
     else:
       print("### processing %d markdown files" % (len(markdown_files)))
@@ -56,9 +59,9 @@ class AssetsOnOctopress(object):
       """
       for line in f:
           if "(/images/" in line or "(/assets/" in line:
-            self._extract_from_markdown(line)
+            self._extract_from_markdown(line,url_name)
           elif '"/images/' in line or '"/assets/' in line:
-            self._extract_from_markdown(line)
+            self._extract_from_markdown(line,url_name)
       f.close()
     print("### found %d links" % (len(self._linked)))
     self._scan_tree("/assets/")
@@ -152,4 +155,5 @@ if __name__ == '__main__':
   #   sys.exit(1)
   assets = ValidateAndFixAssets(dir)
   assets.scan()
+  assets.remove_matches()
   # print(assets._linked)
