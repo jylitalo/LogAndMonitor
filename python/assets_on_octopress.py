@@ -11,8 +11,6 @@ class AssetsOnOctopress(object):
     self._found = []
     self._linked = {}
     self._dir = dir
-    self._waste = []
-    self._missing = []
 
   def _extract_from_markdown(self, line):
     for field in line.split("(/")[1:]:
@@ -73,8 +71,8 @@ class AssetsOnOctopress(object):
     print("### found after /images/ is %d"% (len(self._found)))
 
   def _validate_found(self, fname): self._found.append(fname)
-  def _validate_waste(self,fname): self._waste.append(fname)
-  def _validate_missing(self, fname): self._missing.append(fname)
+  def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
+  def _validate_missing(self, fname): print("MISSING: '%s'" % (fname))
 
   def remove_matches(self):
     # print("found_images = %d" % (len(self._found_images)))
@@ -86,7 +84,6 @@ class AssetsOnOctopress(object):
         elif fname.startswith("/images/") and fname.count('/') == 2: pass
         else: self._validate_waste(fname)
     for fname in self._linked: self._validate_missing(fname)
-    return self._waste,self._missing
 
 class ValidateAndFixAssets(AssetsOnOctopress):
   def __init__(self,dir):
@@ -154,6 +151,3 @@ if __name__ == '__main__':
   assets = ValidateAndFixAssets(dir)
   assets.scan()
   # print(assets._linked)
-  waste,missing_files = assets.remove_matches()
-  for fname in waste: print("WASTE: '%s'" % (fname))
-  for fname in missing_files: print("MISSING: '%s'" % (fname))
