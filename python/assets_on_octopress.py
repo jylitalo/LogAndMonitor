@@ -7,10 +7,10 @@ import sys
 
 class AssetsOnOctopress(object):
   def __init__(self,dir):
+    self._dir = dir
     self.debug = False
     self._found = []
     self._linked = {}
-    self._dir = dir
 
   def _extract_from_markdown(self, line):
     for field in line.split("(/")[1:]:
@@ -19,15 +19,11 @@ class AssetsOnOctopress(object):
       if field.startswith("/images/") or field.startswith("/assets/"):
          if field in self._linked: self._linked[field] += 1
          else: self._linked[field] = 1
-      else:
-        pass
     for field in line.split('"/')[1:]:
       field = "/" + field[:field.find('"',1)]
       if field.startswith("/images/") or field.startswith("/assets/"):
          if field in self._linked: self._linked[field] += 1
          else: self._linked[field] = 1
-      else:
-        pass
 
   def _scan_tree(self,subdir):
     ret = []
@@ -61,7 +57,7 @@ class AssetsOnOctopress(object):
       for line in f:
           if "(/images/" in line or "(/assets/" in line:
             self._extract_from_markdown(line)
-          if '"/images/' in line or '"/assets/' in line:
+          elif '"/images/' in line or '"/assets/' in line:
             self._extract_from_markdown(line)
       f.close()
     print("### found %d links" % (len(self._linked)))
@@ -83,7 +79,10 @@ class AssetsOnOctopress(object):
         elif fname.startswith("/assets/jwplayer"): pass
         elif fname.startswith("/images/") and fname.count('/') == 2: pass
         else: self._validate_waste(fname)
-    for fname in self._linked: self._validate_missing(fname)
+    if self._linked: 
+      linked_keys = self._linked.keys()
+      linked_keys.sort()
+      for fname in linked_keys: self._validate_missing(fname)
 
 class ValidateAndFixAssets(AssetsOnOctopress):
   def __init__(self,dir):
