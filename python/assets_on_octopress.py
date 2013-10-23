@@ -8,6 +8,16 @@ import sys
 
 class AssetsOnOctopress(object):
   def __init__(self,dir):
+    # Setup
+    errors = []
+    for key in ["_posts","images","assets"]:
+      if not os.path.isdir("%s/%s" % (dir,key)): errors.append(key)
+    if errors:
+      print("""Invalid directory for Octopress source.
+%s doesn't have following subdirectories: %s
+Doing exit.""" % (dir,", ".join(errors)))
+      sys.exit(2)
+    # Execute
     self._dir = dir
     self.debug = False
     self._found = []
@@ -38,7 +48,7 @@ class AssetsOnOctopress(object):
     return ret
 
   def scan(self):
-    begin_index = len("yyyy-mm-dd")
+    begin_index = len("yyyy-mm-dd-")
     end_index = len(".markdown")
     markdown_files = []
     for root,dirnames,filenames in os.walk(self._dir):
@@ -95,12 +105,15 @@ class ValidateAndFixAssets(AssetsOnOctopress):
   def __init__(self,dir):
     AssetsOnOctopress.__init__(self,dir)
     self._images_root = os.path.expanduser("~/kuvat/original_jpg")
+    self._validate_original = False
+    self._convert_missing = False
 
   def _original_image(self,fname):
+    # Setup
     begin_index = fname.find('/',1)
     end_index = len("_t.jpg")
     if fname[-end_index] != '_': end_index = len(".jpg")
-    # print("begin_index=%d, end_index=%d" % (begin_index,end_index))
+    # Execute
     pattern = "%s%s.*" % (self._images_root,fname[begin_index:-end_index])
     original_fname = glob.glob(pattern)
     if original_fname: return original_fname[0]
@@ -109,8 +122,12 @@ class ValidateAndFixAssets(AssetsOnOctopress):
     return None
 
   def _validate_found(self,fname):
+    # Setup
     if self._ignore(fname): return
-    # print "### validating " + fname
+    if not self._validate_original:
+      self._found.append(fname)
+      return
+    # Execute
     original_fname = self._original_image(fname)
     if original_fname:
       full_fname = self._dir + fname
@@ -133,6 +150,11 @@ class ValidateAndFixAssets(AssetsOnOctopress):
     os.system(cmdline)
 
   def _validate_missing(self,fname):
+    # Setup
+    if not self._convert_missing: 
+      AssetsOnOctopress._validate_missing(self,fname)
+      return
+    # Execute
     original_fname = self._original_image(fname)
     fname = self._dir + fname
     if not original_fname:
@@ -156,4 +178,3 @@ if __name__ == '__main__':
   assets = ValidateAndFixAssets(dir)
   assets.scan()
   assets.remove_matches()
-  # print(assets._linked)
