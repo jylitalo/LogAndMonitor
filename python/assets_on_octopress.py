@@ -6,7 +6,7 @@ import os
 import stat
 import sys
 
-class AssetsOnOctopress(object):
+class AssetsFinder(object):
   def __init__(self,dir):
     # Setup
     errors = []
@@ -101,12 +101,12 @@ Doing exit.""" % (dir,", ".join(errors)))
       linked_keys.sort()
       for fname in linked_keys: self._validate_missing(fname)
 
-class ValidateAndFixAssets(AssetsOnOctopress):
+class AssetsFixer(AssetsFinder):
   def __init__(self,dir):
-    AssetsOnOctopress.__init__(self,dir)
+    AssetsFinder.__init__(self,dir)
     self._images_root = os.path.expanduser("~/kuvat/original_jpg")
-    self._validate_original = False
-    self._convert_missing = False
+    self._validate_original = True
+    self._convert_missing = True
 
   def _original_image(self,fname):
     # Setup
@@ -152,7 +152,7 @@ class ValidateAndFixAssets(AssetsOnOctopress):
   def _validate_missing(self,fname):
     # Setup
     if not self._convert_missing: 
-      AssetsOnOctopress._validate_missing(self,fname)
+      AssetsFinder._validate_missing(self,fname)
       return
     # Execute
     original_fname = self._original_image(fname)
@@ -170,11 +170,14 @@ class ValidateAndFixAssets(AssetsOnOctopress):
 
 
 if __name__ == '__main__':
+  if len(sys.argv) < 2: 
+    print("Usage: assets_on_octopress.py [dir]")
+    sys.exit(4)
   dir = sys.argv[1]
   # ofname = sys.argv[2]
   # if os.access(ofname, os.F_OK):
   #   print("File (%s) already exists." % (ofname))
   #   sys.exit(1)
-  assets = ValidateAndFixAssets(dir)
+  assets = AssetsFixer(dir)
   assets.scan()
   assets.remove_matches()
