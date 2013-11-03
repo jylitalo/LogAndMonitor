@@ -30,11 +30,12 @@ Doing exit.""" % (dir,", ".join(errors)))
       if field.startswith("/images/") or field.startswith("/assets/"):
          if field in self._linked: self._linked[field].append(name)
          else: self._linked[field] = [name]
-    for field in line.split('"/')[1:]:
-      field = "/" + field[:field.find('"',1)]
-      if field.startswith("/images/") or field.startswith("/assets/"):
-         if field in self._linked: self._linked[field].append(name)
-         else: self._linked[field] = [name]
+    for c in [' ','"']:
+      for field in line.split(c + '/')[1:]:
+        field = "/" + field[:field.find(c,1)]
+        if field.startswith("/images/") or field.startswith("/assets/"):
+           if field in self._linked: self._linked[field].append(name)
+           else: self._linked[field] = [name]
 
   def _scan_tree(self,subdir):
     ret = []
@@ -70,7 +71,7 @@ Doing exit.""" % (dir,", ".join(errors)))
       for line in f:
           if "(/images/" in line or "(/assets/" in line:
             self._extract_from_markdown(line,url_name)
-          elif '"/images/' in line or '"/assets/' in line:
+          elif '/images/' in line or '/assets/' in line:
             self._extract_from_markdown(line,url_name)
       f.close()
     print("### found %d links" % (len(self._linked)))
@@ -135,14 +136,14 @@ class AssetsFixer(AssetsFinder):
       full_mtime = os.stat(full_fname)[stat.ST_MTIME]
       if original_mtime >= full_mtime:
         print("unlink %s (%d vs. %d)" % (full_fname,original_mtime,full_mtime))
-        # os.unlink(full_fname)
+        os.unlink(full_fname)
       else: self._found.append(fname)
     else: 
       print("### unable to find original file for " + fname)
 
   def _validate_waste(self,fname):
     print("unlinking %s%s (validate waste)" % (self._dir,fname))
-    # os.unlink("%s%s" % (self._dir,fname))
+    os.unlink("%s%s" % (self._dir,fname))
 
   def _resize_image(self,source_name,dest_name,resolution):
     cmdline = "convert -resize %s %s %s" % (resolution,source_name,dest_name)
@@ -159,6 +160,8 @@ class AssetsFixer(AssetsFinder):
     fname = self._dir + fname
     if not original_fname:
       print("### unable to find original_image for %s (references: %s)" % (fname,", ".join(self._linked[fname])))
+    dname = os.path.dirname(fname)
+    if not os.access(dname,os.F_OK): os.mkdir(dname)
     if fname.endswith("_t.jpg"):
       cmdline = "convert -thumbnail 150x150^ -gravity center -extent 150x150 %s %s" % (original_fname,fname)
       print("### " + cmdline)
