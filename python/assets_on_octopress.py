@@ -157,9 +157,9 @@ class AssetsFixer(AssetsFinder):
       return
     # Execute
     original_fname = self._original_image(fname)
-    fname = self._dir + fname
     if not original_fname:
       print("### unable to find original_image for %s (references: %s)" % (fname,", ".join(self._linked[fname])))
+    fname = self._dir + fname
     dname = os.path.dirname(fname)
     if not os.access(dname,os.F_OK): os.mkdir(dname)
     if fname.endswith("_t.jpg"):
