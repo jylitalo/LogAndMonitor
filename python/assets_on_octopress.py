@@ -126,18 +126,18 @@ class AssetsFixer(AssetsFinder):
     if not self._validate_original:
       self._found.append(fname)
       return
-    # Execute
     original_fname = self._original_image(fname)
-    if original_fname:
-      full_fname = self._dir + fname
-      original_mtime = os.stat(original_fname)[stat.ST_MTIME]
-      full_mtime = os.stat(full_fname)[stat.ST_MTIME]
-      if original_mtime >= full_mtime:
-        print("unlink %s (%d vs. %d)" % (full_fname,original_mtime,full_mtime))
-        os.unlink(full_fname)
-      else: self._found.append(fname)
-    else: 
+    if not original_fname:
       print("### unable to find original file for " + fname)
+      return
+    # Execute
+    full_fname = self._dir + fname
+    original_mtime = os.stat(original_fname)[stat.ST_MTIME]
+    full_mtime = os.stat(full_fname)[stat.ST_MTIME]
+    if original_mtime >= full_mtime:
+      print("unlink %s (%d vs. %d)" % (full_fname,original_mtime,full_mtime))
+      os.unlink(full_fname)
+    else: self._found.append(fname)
 
   def _validate_waste(self,fname):
     print("unlinking %s%s (validate waste)" % (self._dir,fname))
