@@ -67,9 +67,7 @@ Doing exit.""" % (dir,", ".join(errors)))
         '.markdown' from end of filenames. 
       """
       for line in f:
-          if "(/images/" in line or "(/assets/" in line:
-            self._extract_from_markdown(line,url_name)
-          elif '/images/' in line or '/assets/' in line:
+          if '/images/' in line or '/assets/' in line:
             self._extract_from_markdown(line,url_name)
       f.close()
     print("### found %d links" % (len(self._linked)))
