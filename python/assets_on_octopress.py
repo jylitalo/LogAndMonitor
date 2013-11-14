@@ -177,10 +177,6 @@ if __name__ == '__main__':
     print("Usage: assets_on_octopress.py [dir]")
     sys.exit(4)
   dir = sys.argv[1]
-  # ofname = sys.argv[2]
-  # if os.access(ofname, os.F_OK):
-  #   print("File (%s) already exists." % (ofname))
-  #   sys.exit(1)
   assets = AssetsFixer(dir)
   assets.scan()
   assets.remove_matches()
