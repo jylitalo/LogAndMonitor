@@ -42,10 +42,8 @@ Doing exit.""" % (dir,", ".join(errors)))
     ignore = len(self._dir)
     for root,dirnames,filenames in os.walk(self._dir + subdir):
       for filename in filenames:
-        if filename == ".DS_Store": pass
-        else:
-          fname = os.path.join(root, filename)[ignore:]
-          self._validate_found(fname)
+        fname = os.path.join(root, filename)[ignore:]
+        self._validate_found(fname)
     return ret
 
   def scan(self):
@@ -80,22 +78,24 @@ Doing exit.""" % (dir,", ".join(errors)))
     self._scan_tree("/images/")
     print("### found after /images/ is %d"% (len(self._found)))
 
-  def _validate_found(self, fname): self._found.append(fname)
+  def _validate_found(self, fname):
+    if not self._ignore(fname): self._found.append(fname)
+
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
   def _ignore(self, fname):
+    if fname.endswith("/.DS_Store"): return True
     if fname.startswith("/assets/jwplayer"): return True
     elif fname.startswith("/images/") and fname.count('/') == 2: return True
     return False
 
   def remove_matches(self):
     # print("found_images = %d" % (len(self._found_images)))
-    if self._found: self._found.sort()
     if self._found:
+      self._found.sort()
       for fname in self._found:
         if fname in self._linked: del self._linked[fname]
-        elif self._ignore(fname): pass 
         else: self._validate_waste(fname)
     if self._linked: 
       linked_keys = self._linked.keys()
