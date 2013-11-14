@@ -88,7 +88,7 @@ Doing exit.""" % (dir,", ".join(errors)))
     elif fname.startswith("/images/") and fname.count('/') == 2: return True
     return False
 
-  def remove_matches(self):
+  def validate(self):
     # print("found_images = %d" % (len(self._found_images)))
     if self._found:
       self._found.sort()
@@ -177,4 +177,4 @@ if __name__ == '__main__':
   dir = sys.argv[1]
   assets = AssetsFixer(dir)
   assets.scan()
-  assets.remove_matches()
+  assets.validate()
