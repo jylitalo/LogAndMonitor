@@ -30,7 +30,7 @@ Doing exit.""" % (dir,", ".join(errors)))
       if field.startswith("/images/") or field.startswith("/assets/"):
          if field in self._linked: self._linked[field].append(name)
          else: self._linked[field] = [name]
-    for c in [' ','"']:
+    for c in [' ','"',"'"]:
       for field in line.split(c + '/')[1:]:
         field = "/" + field[:field.find(c,1)]
         if field.startswith("/images/") or field.startswith("/assets/"):
@@ -43,7 +43,7 @@ Doing exit.""" % (dir,", ".join(errors)))
     for root,dirnames,filenames in os.walk(self._dir + subdir):
       for filename in filenames:
         fname = os.path.join(root, filename)[ignore:]
-        self._validate_found(fname)
+        if not self._ignore(fname): self._validate_found(fname)
     return ret
 
   def scan(self):
@@ -76,9 +76,7 @@ Doing exit.""" % (dir,", ".join(errors)))
     self._scan_tree("/images/")
     print("### found after /images/ is %d"% (len(self._found)))
 
-  def _validate_found(self, fname):
-    if not self._ignore(fname): self._found.append(fname)
-
+  def _validate_found(self, fname): self._found.append(fname)
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
@@ -122,14 +120,13 @@ class AssetsFixer(AssetsFinder):
 
   def _validate_found(self,fname):
     # Setup
-    if self._ignore(fname): return
     if not self._validate_original:
       self._found.append(fname)
-      return
+      return True
     original_fname = self._original_image(fname)
     if not original_fname:
       print("### unable to find original file for " + fname)
-      return
+      return False
     # Execute
     full_fname = self._dir + fname
     original_mtime = os.stat(original_fname)[stat.ST_MTIME]
@@ -137,7 +134,10 @@ class AssetsFixer(AssetsFinder):
     if original_mtime >= full_mtime:
       print("unlink %s (%d vs. %d)" % (full_fname,original_mtime,full_mtime))
       os.unlink(full_fname)
-    else: self._found.append(fname)
+      return False
+    else: 
+      self._found.append(fname)
+      return True
 
   def _validate_waste(self,fname):
     print("unlinking %s%s (validate waste)" % (self._dir,fname))
