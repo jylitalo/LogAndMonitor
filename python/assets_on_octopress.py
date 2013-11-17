@@ -23,19 +23,29 @@ Doing exit.""" % (dir,", ".join(errors)))
     self._found = []
     self._linked = {}
 
-  def _extract_from_markdown(self, line, name):
-    for field in line.split("(/")[1:]:
-      field = "/" + field[:field.find(')')]
-      if ' "' in field: field = field[:field.find(' "')]
-      if field.startswith("/images/") or field.startswith("/assets/"):
-         if field in self._linked: self._linked[field].append(name)
-         else: self._linked[field] = [name]
-    for c in [' ','"',"'"]:
-      for field in line.split(c + '/')[1:]:
-        field = "/" + field[:field.find(c,1)]
-        if field.startswith("/images/") or field.startswith("/assets/"):
-           if field in self._linked: self._linked[field].append(name)
-           else: self._linked[field] = [name]
+  @staticmethod
+  def _extract_from_markdown(line):
+    """
+      >>> AssetsFinder._extract_from_markdown("foobar")
+      []
+      >>> AssetsFinder._extract_from_markdown('[foobar](/images/link.jpg)')
+      ['/images/link.jpg']
+      >>> AssetsFinder._extract_from_markdown('[foobar](/images/link.jpg "foobar")')
+      ['/images/link.jpg']
+      >>> AssetsFinder._extract_from_markdown('{% img /images/something.jpg "foobar"}')
+      ['/images/something.jpg']
+    """
+    links = []
+    for key in ["images","assets"]:
+      for field in line.split("(/" + key)[1:]:
+        field = "/%s%s" % (key,field[:field.find(')')])
+        if ' "' in field: field = field[:field.find(' "')]
+        links.append(field)
+      for c in [' ','"',"'"]:
+        for field in line.split("%s/%s" % (c,key))[1:]:
+          field = "/" + key + field[:field.find(c,1)]
+          links.append(field)
+    return links
 
   def _scan_tree(self,subdir):
     ret = []
@@ -67,8 +77,10 @@ Doing exit.""" % (dir,", ".join(errors)))
         '.markdown' from end of filenames. 
       """
       for line in f:
-          if '/images/' in line or '/assets/' in line:
-            self._extract_from_markdown(line,url_name)
+        if '/images/' in line or '/assets/' in line:
+          for link in AssetsFinder._extract_from_markdown(line):
+            if link in self._linked: self._linked[link].append(url_name)
+            else: self._linked[link] = [url_name]
       f.close()
     print("### found %d links" % (len(self._linked)))
     self._scan_tree("/assets/")
