@@ -9,7 +9,6 @@ import sys
 class AssetsFinder(object):
   def __init__(self):
     self._dir = None
-    self.debug = False
     self._found = []
     self._linked = {}
 
@@ -61,7 +60,6 @@ Doing exit.""" % (dir,", ".join(errors)))
         if not self._ignore(fname): self._validate_found(fname)
     return ret
 
-  @classmethod
   def _find_markdown_files(self):
     ret = []
     for root,dirnames,fnames in os.walk(self.dir):
@@ -74,14 +72,12 @@ Doing exit.""" % (dir,", ".join(errors)))
       print("### processing %d markdown files" % (len(ret)))
     return ret
 
-  @classmethod
   def scan(self,dir):
     self.dir = dir
     begin_index = len("yyyy-mm-dd-")
     end_index = len(".markdown")
 
     for fname in self._find_markdown_files():
-      if self.debug: print("### Checking " + fname)
       f = open(fname)
       url_name = "/" + os.path.basename(fname)[begin_index:-end_index] + "/"
       for line in f:
@@ -95,7 +91,6 @@ Doing exit.""" % (dir,", ".join(errors)))
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
-  @classmethod
   def _ignore(self, fname):
     """
       >>> AssetsFinder()._ignore("/foobar/.DS_Store")
@@ -114,15 +109,13 @@ Doing exit.""" % (dir,", ".join(errors)))
 
   def validate(self):
     # print("found_images = %d" % (len(self._found_images)))
-    if self._found:
-      self._found.sort()
-      for fname in self._found:
-        if fname in self._linked: del self._linked[fname]
-        else: self._validate_waste(fname)
-    if self._linked: 
-      linked_keys = self._linked.keys()
-      linked_keys.sort()
-      for fname in linked_keys: self._validate_missing(fname)
+    self._found.sort()
+    for fname in self._found:
+      if fname in self._linked: del self._linked[fname]
+      else: self._validate_waste(fname)
+    linked_keys = self._linked.keys()
+    linked_keys.sort()
+    for fname in linked_keys: self._validate_missing(fname)
 
 class AssetsFixer(AssetsFinder):
   def __init__(self):
