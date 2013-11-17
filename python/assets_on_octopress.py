@@ -94,8 +94,19 @@ Doing exit.""" % (dir,", ".join(errors)))
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
+  @classmethod
   def _ignore(self, fname):
-    if fname.endswith("/.DS_Store"): return True
+    """
+      >>> AssetsFinder()._ignore("/foobar/.DS_Store")
+      True
+      >>> AssetsFinder()._ignore("/assets/jwplayer/foobar")
+      True
+      >>> AssetsFinder()._ignore("/images/foobar.jpg")
+      True
+      >>> AssetsFinder()._ignore("/images/2013/11/IMG_1234_t.jpg")
+      False
+    """
+    if fname.endswith(".DS_Store"): return True
     if fname.startswith("/assets/jwplayer"): return True
     elif fname.startswith("/images/") and fname.count('/') == 2: return True
     return False
