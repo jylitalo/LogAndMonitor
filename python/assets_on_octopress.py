@@ -61,32 +61,33 @@ Doing exit.""" % (dir,", ".join(errors)))
         if not self._ignore(fname): self._validate_found(fname)
     return ret
 
+  @classmethod
+  def _find_markdown_files(self):
+    ret = []
+    for root,dirnames,fnames in os.walk(self.dir):
+      flist = [os.path.join(root,fn) for fn in fnmatch.filter(fnames,"*.markdown")]
+      ret.extend(flist)
+    if not ret:
+      print("### Unable to find any markdown files from " + self.dir)
+      sys.exit(1)
+    else:
+      print("### processing %d markdown files" % (len(ret)))
+    return ret
+
+  @classmethod
   def scan(self,dir):
     self.dir = dir
     begin_index = len("yyyy-mm-dd-")
     end_index = len(".markdown")
-    markdown_files = []
-    for root,dirnames,filenames in os.walk(dir):
-      for fname in fnmatch.filter(filenames,"*.markdown"):
-        markdown_files.append(os.path.join(root,fname))
-    if not markdown_files:
-      print("### Unable to find any markdown files from " + dir)
-      sys.exit(1)
-    else:
-      print("### processing %d markdown files" % (len(markdown_files)))
-    for fname in markdown_files:
+
+    for fname in self._find_markdown_files():
       if self.debug: print("### Checking " + fname)
       f = open(fname)
       url_name = "/" + os.path.basename(fname)[begin_index:-end_index] + "/"
-      """ 
-        Cut off date (yyyy-mm-dd) from beginning and 
-        '.markdown' from end of filenames. 
-      """
       for line in f:
-        if '/images/' in line or '/assets/' in line:
-          for link in AssetsFinder._extract_from_markdown(line):
-            if link in self._linked: self._linked[link].append(url_name)
-            else: self._linked[link] = [url_name]
+        for link in AssetsFinder._extract_from_markdown(line):
+          if link in self._linked: self._linked[link].append(url_name)
+          else: self._linked[link] = [url_name]
       f.close()
     for key in ["assets","images"]: self._scan_tree("/" + key + "/")
 
