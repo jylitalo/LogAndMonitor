@@ -38,6 +38,8 @@ Doing exit.""" % (dir,", ".join(errors)))
       ['/images/link.jpg']
       >>> AssetsFinder._extract_from_markdown('{% img /images/something.jpg "foobar"}')
       ['/images/something.jpg']
+      >>> AssetsFinder._extract_from_markdown('[![#48/2012: Rautatientori](/images/2012/11/IMG_0156_t.jpg "#48/2012: Rautatientori")](/images/2012/11/IMG_0156_l.jpg "#48/2012: Rautatientori")')
+      ['/images/2012/11/IMG_0156_t.jpg', '/images/2012/11/IMG_0156_l.jpg']
     """
     links = []
     for key in ["images","assets"]:
