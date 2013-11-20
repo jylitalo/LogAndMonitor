@@ -39,13 +39,13 @@ Doing exit.""" % (dir,", ".join(errors)))
   @staticmethod
   def _ignore(fname):
     """
-      >>> AssetsFinder()._ignore("/foobar/.DS_Store")
+      >>> AssetsFinder._ignore("/foobar/.DS_Store")
       True
-      >>> AssetsFinder()._ignore("/assets/jwplayer/foobar")
+      >>> AssetsFinder._ignore("/assets/jwplayer/foobar")
       True
-      >>> AssetsFinder()._ignore("/images/foobar.jpg")
+      >>> AssetsFinder._ignore("/images/foobar.jpg")
       True
-      >>> AssetsFinder()._ignore("/images/2013/11/IMG_1234_t.jpg")
+      >>> AssetsFinder._ignore("/images/2013/11/IMG_1234_t.jpg")
       False
     """
     if fname.endswith(".DS_Store"): return True
@@ -58,21 +58,20 @@ Doing exit.""" % (dir,", ".join(errors)))
     for root,dirnames,fnames in os.walk(self.dir):
       flist = [os.path.join(root,fn) for fn in fnmatch.filter(fnames,"*.markdown")]
       ret.extend(flist)
-    if not ret:
-      print("### Unable to find any markdown files from " + self.dir)
-      sys.exit(1)
-    else:
-      print("### processing %d markdown files" % (len(ret)))
     return ret
 
   def scan(self,dir):
     self.dir = dir
     begin_index = len("yyyy-mm-dd-")
     end_index = len(".markdown")
-
-    for fname in self._find_markdown_files():
-      f = open(fname)
+    fnames = self._find_markdown_files()
+    if not fnames:
+      print("### Unable to find any markdown files from " + self.dir)
+      sys.exit(1)
+    print("### processing %d markdown files" % (len(fnames)))
+    for fname in fnames:
       url_name = "/" + os.path.basename(fname)[begin_index:-end_index] + "/"
+      f = open(fname)
       for line in f:
         for link in self._extract_from_markdown(line):
           if link in self._linked: self._linked[link].append(url_name)
@@ -107,7 +106,8 @@ Doing exit.""" % (dir,", ".join(errors)))
 
   def _validate_found(self, fname): return True
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
-  def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
+  def _validate_missing(self, fname): 
+    print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
   def validate(self):
     found = []
