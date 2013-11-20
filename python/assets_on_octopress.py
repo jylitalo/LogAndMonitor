@@ -9,7 +9,6 @@ import sys
 class AssetsFinder(object):
   def __init__(self):
     self._dir = None
-    self._found = []
     self._linked = {}
 
   @property
@@ -59,7 +58,8 @@ Doing exit.""" % (dir,", ".join(errors)))
     for root,dirnames,filenames in os.walk(self.dir + subdir):
       for filename in filenames:
         fname = os.path.join(root, filename)[ignore:]
-        if not self._ignore(fname): self._validate_found(fname)
+        if not self._ignore(fname) and self._validate_found(fname): 
+          ret.append(fname)
     return ret
 
   def _find_markdown_files(self):
@@ -87,9 +87,8 @@ Doing exit.""" % (dir,", ".join(errors)))
           if link in self._linked: self._linked[link].append(url_name)
           else: self._linked[link] = [url_name]
       f.close()
-    for key in ["assets","images"]: self._scan_tree("/" + key + "/")
 
-  def _validate_found(self, fname): self._found.append(fname)
+  def _validate_found(self, fname): return True
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
@@ -110,9 +109,12 @@ Doing exit.""" % (dir,", ".join(errors)))
     return False
 
   def validate(self):
-    # print("found_images = %d" % (len(self._found_images)))
-    self._found.sort()
-    for fname in self._found:
+    found = []
+    for key in ["assets","images"]: 
+      found.extend(self._scan_tree("/%s/" % (key)))
+    # print("found = %d" % (len(found)))
+    found.sort()
+    for fname in found:
       if fname in self._linked: del self._linked[fname]
       else: self._validate_waste(fname)
     linked_keys = self._linked.keys()
@@ -141,9 +143,7 @@ class AssetsFixer(AssetsFinder):
 
   def _validate_found(self,fname):
     # Setup
-    if not self._validate_original:
-      self._found.append(fname)
-      return True
+    if not self._validate_original: return True
     original_fname = self._original_image(fname)
     if not original_fname:
       print("### unable to find original file for " + fname)
@@ -152,13 +152,10 @@ class AssetsFixer(AssetsFinder):
     full_fname = self.dir + fname
     original_mtime = os.stat(original_fname)[stat.ST_MTIME]
     full_mtime = os.stat(full_fname)[stat.ST_MTIME]
-    if original_mtime >= full_mtime:
-      print("unlink %s (%d vs. %d)" % (full_fname,original_mtime,full_mtime))
-      os.unlink(full_fname)
-      return False
-    else: 
-      self._found.append(fname)
-      return True
+    if original_mtime < full_mtime: return True
+    print("unlink %s (%d vs. %d)" % (full_fname,original_mtime,full_mtime))
+    os.unlink(full_fname)
+    return False
 
   def _validate_waste(self,fname):
     print("unlinking %s%s (validate waste)" % (self.dir,fname))
