@@ -26,6 +26,59 @@ Doing exit.""" % (dir,", ".join(errors)))
       sys.exit(2)
     self._dir = dname
 
+  def _scan_tree(self,subdir):
+    ret = []
+    ignore = len(self.dir)
+    for root,dirnames,filenames in os.walk(self.dir + subdir):
+      for filename in filenames:
+        fname = os.path.join(root, filename)[ignore:]
+        if not self._ignore(fname) and self._validate_found(fname): 
+          ret.append(fname)
+    return ret
+
+  @staticmethod
+  def _ignore(fname):
+    """
+      >>> AssetsFinder()._ignore("/foobar/.DS_Store")
+      True
+      >>> AssetsFinder()._ignore("/assets/jwplayer/foobar")
+      True
+      >>> AssetsFinder()._ignore("/images/foobar.jpg")
+      True
+      >>> AssetsFinder()._ignore("/images/2013/11/IMG_1234_t.jpg")
+      False
+    """
+    if fname.endswith(".DS_Store"): return True
+    if fname.startswith("/assets/jwplayer"): return True
+    elif fname.startswith("/images/") and fname.count('/') == 2: return True
+    return False
+
+  def _find_markdown_files(self):
+    ret = []
+    for root,dirnames,fnames in os.walk(self.dir):
+      flist = [os.path.join(root,fn) for fn in fnmatch.filter(fnames,"*.markdown")]
+      ret.extend(flist)
+    if not ret:
+      print("### Unable to find any markdown files from " + self.dir)
+      sys.exit(1)
+    else:
+      print("### processing %d markdown files" % (len(ret)))
+    return ret
+
+  def scan(self,dir):
+    self.dir = dir
+    begin_index = len("yyyy-mm-dd-")
+    end_index = len(".markdown")
+
+    for fname in self._find_markdown_files():
+      f = open(fname)
+      url_name = "/" + os.path.basename(fname)[begin_index:-end_index] + "/"
+      for line in f:
+        for link in self._extract_from_markdown(line):
+          if link in self._linked: self._linked[link].append(url_name)
+          else: self._linked[link] = [url_name]
+      f.close()
+
   @staticmethod
   def _extract_from_markdown(line):
     """
@@ -52,61 +105,9 @@ Doing exit.""" % (dir,", ".join(errors)))
           links.append(field)
     return links
 
-  def _scan_tree(self,subdir):
-    ret = []
-    ignore = len(self.dir)
-    for root,dirnames,filenames in os.walk(self.dir + subdir):
-      for filename in filenames:
-        fname = os.path.join(root, filename)[ignore:]
-        if not self._ignore(fname) and self._validate_found(fname): 
-          ret.append(fname)
-    return ret
-
-  def _find_markdown_files(self):
-    ret = []
-    for root,dirnames,fnames in os.walk(self.dir):
-      flist = [os.path.join(root,fn) for fn in fnmatch.filter(fnames,"*.markdown")]
-      ret.extend(flist)
-    if not ret:
-      print("### Unable to find any markdown files from " + self.dir)
-      sys.exit(1)
-    else:
-      print("### processing %d markdown files" % (len(ret)))
-    return ret
-
-  def scan(self,dir):
-    self.dir = dir
-    begin_index = len("yyyy-mm-dd-")
-    end_index = len(".markdown")
-
-    for fname in self._find_markdown_files():
-      f = open(fname)
-      url_name = "/" + os.path.basename(fname)[begin_index:-end_index] + "/"
-      for line in f:
-        for link in AssetsFinder._extract_from_markdown(line):
-          if link in self._linked: self._linked[link].append(url_name)
-          else: self._linked[link] = [url_name]
-      f.close()
-
   def _validate_found(self, fname): return True
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
   def _validate_missing(self, fname): print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
-
-  def _ignore(self, fname):
-    """
-      >>> AssetsFinder()._ignore("/foobar/.DS_Store")
-      True
-      >>> AssetsFinder()._ignore("/assets/jwplayer/foobar")
-      True
-      >>> AssetsFinder()._ignore("/images/foobar.jpg")
-      True
-      >>> AssetsFinder()._ignore("/images/2013/11/IMG_1234_t.jpg")
-      False
-    """
-    if fname.endswith(".DS_Store"): return True
-    if fname.startswith("/assets/jwplayer"): return True
-    elif fname.startswith("/images/") and fname.count('/') == 2: return True
-    return False
 
   def validate(self):
     found = []
