@@ -56,8 +56,8 @@ Doing exit.""" % (dir,", ".join(errors)))
   def _find_markdown_files(self):
     ret = []
     for root,dirnames,fnames in os.walk(self.dir):
-      flist = [os.path.join(root,fn) for fn in fnmatch.filter(fnames,"*.markdown")]
-      ret.extend(flist)
+      flist = fnmatch.filter(fnames,"*.markdown")
+      ret.extend([os.path.join(root,fn) for fn in flist])
     return ret
 
   def scan(self,dir):
