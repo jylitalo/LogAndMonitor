@@ -110,17 +110,15 @@ Doing exit.""" % (dir,", ".join(errors)))
     print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
   def validate(self):
-    found = []
-    for key in ["assets","images"]: 
-      found.extend(self._scan_tree("/%s/" % (key)))
-    # print("found = %d" % (len(found)))
-    found.sort()
-    for fname in found:
-      if fname in self._linked: del self._linked[fname]
-      else: self._validate_waste(fname)
-    linked_keys = self._linked.keys()
-    linked_keys.sort()
-    for fname in linked_keys: self._validate_missing(fname)
+    found = set()
+    for key in ["assets","images"]: found.update(self._scan_tree("/%s/" % (key)))
+    linked = set(self._linked.keys())
+    waste = list(found - linked)
+    waste.sort()
+    for fname in waste: self._validate_waste(fname)
+    missing = list(linked - found)
+    missing.sort()
+    for fname in missing: self._validate_missing(fname)
 
 class AssetsFixer(AssetsFinder):
   def __init__(self):
