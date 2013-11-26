@@ -26,6 +26,20 @@ Doing exit.""" % (dir,", ".join(errors)))
       sys.exit(2)
     self._dir = dname
 
+  @staticmethod
+  def find_source_dir(dir=os.getcwd()):
+    """
+    >>> AssetsFinder.find_source_dir("/tmp/octo/source/_posts")
+    '/tmp/octo/source'
+    >>> AssetsFinder.find_source_dir("/tmp/octo/source")
+    '/tmp/octo/source'
+    """
+    if dir.endswith("/source"): return dir
+    if dir.endswith("/source/_posts"): return dir[:dir.rfind('/')]
+    if os.access(dir + "/config.rg", os.R_OK) and os.access(dir + "/source",os.F_OK): 
+      return dir + "/source"
+    raise AssertionError("unable to determine source directory from " + dir)
+
   def _scan_tree(self,subdir):
     ret = []
     ignore = len(self.dir)
@@ -60,17 +74,41 @@ Doing exit.""" % (dir,", ".join(errors)))
       ret.extend([os.path.join(root,fn) for fn in flist])
     return ret
 
-  def scan(self,dir):
-    self.dir = dir
-    begin_index = len("yyyy-mm-dd-")
+  @staticmethod
+  def _get_url_name(fname):
+    """
+    >>> AssetsFinder._get_url_name("foo/source/_posts/2013-11-27-foobar.markdown")
+    'foobar'
+    >>> AssetsFinder._get_url_name("foo/source/_posts/2013-11-27-foo-bar.markdown")
+    'foo-bar'
+    >>> AssetsFinder._get_url_name("foo/source/foobar/index.markdown")
+    'foobar'
+    >>> AssetsFinder._get_url_name("foo/source/foo-bar/index.markdown")
+    'foo-bar'
+    >>> AssetsFinder._get_url_name("foo/source/foobar.markdown")
+    'foobar'
+    >>> AssetsFinder._get_url_name("foo/source/foo-bar.markdown")
+    'foo-bar'
+    """
     end_index = len(".markdown")
+    fname = fname[:-end_index]
+    if "source/_posts/" in fname:
+      begin_index = len("yyyy-mm-dd-")
+      return os.path.basename(fname)[begin_index:]
+    if fname.endswith("/index"):
+      fname = fname[:-len("/index")]
+      return fname[fname.rfind('/')+1:]
+    else: return os.path.basename(fname)
+
+  def scan(self):
+    self.dir = self.find_source_dir()
     fnames = self._find_markdown_files()
     if not fnames:
       print("### Unable to find any markdown files from " + self.dir)
       sys.exit(1)
     print("### processing %d markdown files" % (len(fnames)))
     for fname in fnames:
-      url_name = "/" + os.path.basename(fname)[begin_index:-end_index] + "/"
+      url_name = self._get_url_name(fname)
       f = open(fname)
       for line in f:
         for link in self._extract_from_markdown(line):
@@ -189,10 +227,6 @@ class AssetsFixer(AssetsFinder):
 
 
 if __name__ == '__main__':
-  if len(sys.argv) < 2: 
-    print("Usage: assets_on_octopress.py [dir]")
-    sys.exit(4)
-  dir = sys.argv[1]
   assets = AssetsFixer()
-  assets.scan(dir)
+  assets.scan()
   assets.validate()
