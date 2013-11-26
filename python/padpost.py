@@ -52,23 +52,24 @@ def image_fname(datetime,fname):
   fname = fname[fname.rfind('/'):fname.rfind('.')]
   return "/images/%s/%s%s_c.jpg" % (year,month,fname)
 
-def post_fname(datetime,subject):
+def post_fname(dir,datetime,subject):
   """
-  >>> post_fname("2013-11-11","Foo bar")
-  '2013-11-11-foo-bar.markdown'
+  >>> post_fname("foo/source","2013-11-11","Foo bar")
+  'foo/source/_posts/2013-11-11-foo-bar.markdown'
   """
   fname = subject.replace(' ','-').lower()
-  fname = "%s-%s.markdown" % (datetime,fname)
+  fname = "%s/_posts/%s-%s.markdown" % (dir,datetime,fname)
   return fname
 
 if __name__ == '__main__':
   img_fname = sys.argv[1]
   subject = sys.argv[2]
-  dir = sys.argv[3]
+
   focal_length,datetime = process_file(img_fname)
   if not datetime: print "### Datetime missing from image (%s)" % (img_fname)
   if not focal_length: print "### Focal length missing from image (%s)" % (img_fname)
-  if not datetime or not focal_length: sys.exit(1)
+  if not datetime or not focal_length:
+    raise AssertionError("photograph (%s) doesn't seem to have EXIF for date and/or focal length" % (img_fname))
 
   # print "datetime = " + datetime
   datetime = datetime[:10].replace(':','-')
@@ -76,7 +77,8 @@ if __name__ == '__main__':
   lens = lens_name(focal_length)
 
   days = time.strptime(datetime,"%Y-%m-%d")[7]
-  fname = post_fname(datetime,subject)
+  assets = assets_on_octopress.AssetsFixer()
+  fname = post_fname(assets.find_source_dir(),datetime,subject)
   f = open(fname,"w")
   f.write('''---
 date: '%s 12:00:00'
@@ -90,6 +92,5 @@ title: %s (%d/365)
 ''' % (datetime,subject,days,subject,img_fname,lens))
   f.close()
   print "### %s written." % (fname)
-  assets = assets_on_octopress.AssetsFixer()
-  assets.scan(dir)
+  assets.scan()
   assets.validate()
