@@ -20,10 +20,7 @@ class AssetsFinder(object):
     for key in ["_posts","images","assets"]:
       if not os.path.isdir("%s/%s" % (dname,key)): errors.append(key)
     if errors:
-      print("""Invalid directory for Octopress source.
-%s doesn't have following subdirectories: %s
-Doing exit.""" % (dir,", ".join(errors)))
-      sys.exit(2)
+      raise AssertionError("Source directory (%s) is missing sub-directories: %s" % (dir,", ".join(errors)))
     self._dir = dname
 
   @staticmethod
@@ -104,8 +101,7 @@ Doing exit.""" % (dir,", ".join(errors)))
     self.dir = self.find_source_dir()
     fnames = self._find_markdown_files()
     if not fnames:
-      print("### Unable to find any markdown files from " + self.dir)
-      sys.exit(1)
+      raise AssertionError("Unable to find any markdown files from " + self.dir)
     print("### processing %d markdown files" % (len(fnames)))
     for fname in fnames:
       url_name = self._get_url_name(fname)
