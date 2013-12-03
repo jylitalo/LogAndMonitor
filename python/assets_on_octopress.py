@@ -6,7 +6,22 @@ import os
 import stat
 import sys
 
-class AssetsFinder(object):
+class Octopress(object):
+  @staticmethod
+  def find_source_dir(dir=os.getcwd()):
+    """
+    >>> Octopress.find_source_dir("/tmp/octo/source/_posts")
+    '/tmp/octo/source'
+    >>> Octopress.find_source_dir("/tmp/octo/source")
+    '/tmp/octo/source'
+    """
+    if dir.endswith("/source"): return dir
+    if dir.endswith("/source/_posts"): return dir[:dir.rfind('/')]
+    if os.access(dir + "/config.rg", os.R_OK) and os.access(dir + "/source",os.F_OK): 
+      return dir + "/source"
+    raise AssertionError("unable to determine source directory from " + dir)
+
+class AssetsFinder(Octopress):
   def __init__(self):
     self._dir = None
     self._linked = {}
@@ -23,28 +38,14 @@ class AssetsFinder(object):
       raise AssertionError("Source directory (%s) is missing sub-directories: %s" % (dir,", ".join(errors)))
     self._dir = dname
 
-  @staticmethod
-  def find_source_dir(dir=os.getcwd()):
-    """
-    >>> AssetsFinder.find_source_dir("/tmp/octo/source/_posts")
-    '/tmp/octo/source'
-    >>> AssetsFinder.find_source_dir("/tmp/octo/source")
-    '/tmp/octo/source'
-    """
-    if dir.endswith("/source"): return dir
-    if dir.endswith("/source/_posts"): return dir[:dir.rfind('/')]
-    if os.access(dir + "/config.rg", os.R_OK) and os.access(dir + "/source",os.F_OK): 
-      return dir + "/source"
-    raise AssertionError("unable to determine source directory from " + dir)
-
   def _scan_tree(self,subdir):
     ret = []
     ignore = len(self.dir)
-    for root,dirnames,filenames in os.walk(self.dir + subdir):
-      for filename in filenames:
-        fname = os.path.join(root, filename)[ignore:]
-        if not self._ignore(fname) and self._validate_found(fname): 
-          ret.append(fname)
+    for root,dirnames,fnames in os.walk(self.dir + subdir):
+      root = root[ignore:]
+      fnames = [os.path.join(root,fn) for fn in fnames]
+      fnames = [fn for fn in fnames if not self._ignore(fn) and self._validate_found(fn)]
+      ret.extend(fnames)
     return ret
 
   @staticmethod
