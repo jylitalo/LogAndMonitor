@@ -3,12 +3,15 @@
 import glob
 import os
 import sys
+import time
 
 # on Mac OS X:
 # brew install python
 # pip install exifread
 # use python from /usr/local/bin (instead of /usr/bin/python)
 import exifread
+
+import assets_on_octopress
 
 class LensAnalysesOnOctopress(object):
   def __init__(self):
@@ -74,12 +77,13 @@ class LensAnalysesOnOctopress(object):
     return focal_lengths
     
 if __name__ == '__main__':
-  dir = sys.argv[1]
-  ofname = sys.argv[2]
+  op = assets_on_octopress.Octopress
+  dir = op.find_source_dir()
+  ofname = sys.argv[1]
   if os.access(ofname, os.F_OK):
     print("File (%s) already exists." % (ofname))
     sys.exit(1)
-  focal_lengths = LensAnalysesOnOctopress().scan(dir)
+  focal_lengths = LensAnalysesOnOctopress().scan(dir + "/_posts")
   """ create report from dictionary """
   lens_name = {
       "missing" : "Not available",
@@ -91,6 +95,7 @@ if __name__ == '__main__':
   k = lens_name.keys()
   k.sort()
   f = open(ofname,"w")
+  f.write(op.head(time.strftime("%Y-%m-%d 12:00:00"),"page","Posts by lens"))
   for fl in k:
     f.write("<div><b>%s (%d)</b><br />\n" % (lens_name[fl],len(focal_lengths[fl])))
     for url,name in focal_lengths[fl]:
