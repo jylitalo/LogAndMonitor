@@ -1,38 +1,28 @@
+#!/usr/local/bin/python
+
 import glob
 import os
 import sys
 import time
 
-import exifdump
+# on Mac OS X:
+# brew install python
+# pip install exifread
+# use python from /usr/local/bin (instead of /usr/bin/python)
+import exifread
+
 import assets_on_octopress
 
 def process_file(fname):
   fl = dt = None
   f = open(fname)
-  data = f.read(12)
-  length = ord(data[4])*256 + ord(data[5])
-  data = f.read(length-8)
-  T = exifdump.TIFF_file(data)
-  L = T.list_IFDs()
-  for i in range(len(L)):
-    exif_off = None
-    IFD = T.dump_IFD(L[i])
-    for (tag,type,values) in IFD:
-      if tag == 0x8769:
-        exif_off = values[0]
-      elif tag in exifdump.EXIF_TAGS:
-        stag = exifdump.EXIF_TAGS[tag]
-        if stag == "FocalLength": fl = values[0].num
-    if exif_off and not fl:
-      IFD = T.dump_IFD(exif_off)
-      for (tag,type,values) in IFD:
-        if tag in exifdump.EXIF_TAGS:
-          stag = exifdump.EXIF_TAGS[tag]
-          if stag == "FocalLength":  
-            fl = values[0].num
-          elif stag == "DateTimeOriginal": dt = values
+  tags = exifread.process_file(f)
   f.close()
-  if fl > 60: fl=75
+
+  if tags.has_key("EXIF DateTimeOriginal"): dt = tags["EXIF DateTimeOriginal"].values
+  if tags.has_key("EXIF FocalLength"): 
+    fl = tags["EXIF FocalLength"].values[0].num
+    if fl > 60: fl=75
   return (fl,dt)
 
 def lens_name(focal_length):
@@ -47,8 +37,7 @@ def image_fname(datetime,fname):
   >>> image_fname("2013-11-11","~/kuvat/jpg/2013/11/PB123456.jpg")
   '/images/2013/11/PB123456_c.jpg'
   """
-  year = datetime[:4]
-  month = datetime[5:7]
+  year,month = datetime[:4],datetime[5:7]
   fname = fname[fname.rfind('/'):fname.rfind('.')]
   return "/images/%s/%s%s_c.jpg" % (year,month,fname)
 
@@ -77,19 +66,14 @@ if __name__ == '__main__':
   lens = lens_name(focal_length)
 
   days = time.strptime(datetime,"%Y-%m-%d")[7]
+  title = "%s (%d/365)" % (subject,days)
   assets = assets_on_octopress.AssetsFixer()
   fname = post_fname(assets.find_source_dir(),datetime,subject)
   f = open(fname,"w")
-  f.write('''---
-date: '%s 12:00:00'
-layout: post
-status: publish
-title: %s (%d/365)
----
-![%s](%s)
+  f.write('''%s![%s](%s)
 <!--more-->
 %s
-''' % (datetime,subject,days,subject,img_fname,lens))
+''' % (assets.head(datetime + " 12:00:00",'post',title),subject,img_fname,lens))
   f.close()
   print "### %s written." % (fname)
   assets.scan()
