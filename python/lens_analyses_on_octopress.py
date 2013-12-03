@@ -1,9 +1,14 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 
 import glob
 import os
 import sys
-import exifdump
+
+# on Mac OS X:
+# brew install python
+# pip install exifread
+# use python from /usr/local/bin (instead of /usr/bin/python)
+import exifread
 
 class LensAnalysesOnOctopress(object):
   def __init__(self):
@@ -17,37 +22,15 @@ class LensAnalysesOnOctopress(object):
       Return focal length as string with "mm" suffix, if focal length was found.
     """
     if self.debug: print("### processing " + fname)
-    fl = None
+    fl_name = "EXIF FocalLength"
     f = open(fname)
-    data = f.read(12)
-    length = ord(data[4])*256 + ord(data[5])
-    data = f.read(length-8)
-    T = exifdump.TIFF_file(data)
-    L = T.list_IFDs()
-    for i in range(len(L)):
-      exif_off = None
-      IFD = T.dump_IFD(L[i])
-      for (tag,type,values) in IFD:
-        if tag == 0x8769:
-          exif_off = values[0]
-        elif tag in exifdump.EXIF_TAGS:
-          stag = exifdump.EXIF_TAGS[tag]
-          if stag == "FocalLength":  
-            fl = values[0].num
-            break
-      if exif_off and not fl:
-        IFD = T.dump_IFD(exif_off)
-        for (tag,type,values) in IFD:
-          if tag in exifdump.EXIF_TAGS:
-            stag = exifdump.EXIF_TAGS[tag]
-            if stag == "FocalLength":  
-              fl = values[0].num
-              break
+    tags = exifread.process_file(f, stop_tag=fl_name, details=False)
     f.close()
+    if not tags.has_key(fl_name): return None
+    fl = tags[fl_name]
     if self.debug: print("### %s -> %d" % (fname,fl))
     if fl > 60: fl=75
-    if fl: return str(fl) + "mm"
-    else: return None
+    return str(fl) + "mm"
 
   def map_filename(self,fname):
     """ 
@@ -75,17 +58,12 @@ class LensAnalysesOnOctopress(object):
           status = 1 ... within blog post header
           status = 2 ... within blog post body
         """
-        if line.startswith("---"): 
-          status += 1
-          if self.debug: print("### status => %d" % (status))
+        if line.startswith("---"): status += 1
         elif status == 1 and line.startswith("title: "): 
           title = line[7:].strip()
-          if self.debug: print("### found title " + title)
         elif status == 2 and line.startswith("!["):
           img_name = line.split('](',1)[1].split(')',1)[0]
-          if self.debug: print("### found image " + img_name)
           full_img_name = self.map_filename(img_name)
-          # print full_img_name
           assert os.access(full_img_name, os.R_OK), "Unable to read img_file (%s) from %s" % (img_name,fname)
           fl = self.process_file(full_img_name)
           break
@@ -110,8 +88,6 @@ if __name__ == '__main__':
       "60mm" : "Olympus M.Zuiko 60mm f/2.8 Macro",
       "75mm" : "Olympus M.Zuiko 75-300mm f/4.8-6.7 II"
       }
-  # print("focal lengths = " + str(focal_lengths.keys()))
-  # print("focal lengths = " + str(lens_name.keys()))
   k = lens_name.keys()
   k.sort()
   f = open(ofname,"w")
