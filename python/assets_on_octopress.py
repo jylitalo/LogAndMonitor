@@ -21,6 +21,16 @@ class Octopress(object):
       return dir + "/source"
     raise AssertionError("unable to determine source directory from " + dir)
 
+  @staticmethod
+  def head(datetime,layout,title):
+    return """---
+date: '%s'
+layout: %s
+status: publish
+title: %s
+---
+""" % (datetime,layout,title)
+
 class AssetsFinder(Octopress):
   def __init__(self):
     self._dir = None
