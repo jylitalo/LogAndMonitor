@@ -14,23 +14,30 @@ import exifread
 import assets_on_octopress
 
 def process_file(fname):
-  fl = dt = None
   f = open(fname)
   tags = exifread.process_file(f)
   f.close()
 
+  fl = dt = None
   if tags.has_key("EXIF DateTimeOriginal"): dt = tags["EXIF DateTimeOriginal"].values
-  if tags.has_key("EXIF FocalLength"): 
-    fl = tags["EXIF FocalLength"].values[0].num
-    if fl > 60: fl=75
+  if tags.has_key("EXIF FocalLength"): fl = tags["EXIF FocalLength"].values[0].num
+
+  errmsg = None
+  if not (dt or fl): errmsg = "DateTime and FocalLength are"
+  elif not dt: errmsg = "DateTime is"
+  elif not fl: errmsg = "FocalLength is"
+  if errmsg: raise AssertionError(errmsg + " missing from " + fname)
+
+  dt = dt[:10].replace(':','-')
+  if fl > 60: fl=75
   return (fl,dt)
 
 def lens_name(focal_length):
-  if focal_length == 12: lens = "Olympus M.Zuiko 12mm f/2"
-  elif focal_length == 25: lens = "Panasonic Leica DG Summilux 25mm f/1.4"
-  elif focal_length == 60: lens = "Olympus M.Zuiko 60mm f/2.8 Macro"
-  else: lens = "UNKNOWN"
-  return lens
+  lenses = { 12 : "Olympus M.Zuiko 12mm f/2",
+             25 : "Panasonic Leica DG Summilux 25mm f/1.4",
+             60 : "Olympus M.Zuiko 60mm f/2.8 Macro" }
+  if focal_length in lenses: return lenses[focal_length]
+  return "UNKNOWN"
 
 def image_fname(datetime,fname):
   """
@@ -55,13 +62,6 @@ if __name__ == '__main__':
   subject = sys.argv[2]
 
   focal_length,datetime = process_file(img_fname)
-  if not datetime: print "### Datetime missing from image (%s)" % (img_fname)
-  if not focal_length: print "### Focal length missing from image (%s)" % (img_fname)
-  if not datetime or not focal_length:
-    raise AssertionError("photograph (%s) doesn't seem to have EXIF for date and/or focal length" % (img_fname))
-
-  # print "datetime = " + datetime
-  datetime = datetime[:10].replace(':','-')
   img_fname = image_fname(datetime,img_fname)
   lens = lens_name(focal_length)
 
