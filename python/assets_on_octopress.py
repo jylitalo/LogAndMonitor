@@ -14,6 +14,10 @@ class Octopress(object):
     '/tmp/octo/source'
     >>> Octopress.find_source_dir("/tmp/octo/source")
     '/tmp/octo/source'
+    >>> Octopress.find_source_dir("/bound/to/fail")
+    Traceback (most recent call last):
+    ...
+    AssertionError: unable to determine source directory from /bound/to/fail
     """
     if dir.endswith("/source"): return dir
     if dir.endswith("/source/_posts"): return dir[:dir.rfind('/')]
@@ -67,12 +71,15 @@ class AssetsFinder(Octopress):
       True
       >>> AssetsFinder._ignore("/images/foobar.jpg")
       True
+      >>> AssetsFinder._ignore("/_posts/.#1970-01-01-foobar.markdown")
+      True
       >>> AssetsFinder._ignore("/images/2013/11/IMG_1234_t.jpg")
       False
     """
     if fname.endswith(".DS_Store"): return True
     if fname.startswith("/assets/jwplayer"): return True
-    elif fname.startswith("/images/") and fname.count('/') == 2: return True
+    if fname.find("/.#") > -1: return True
+    if fname.startswith("/images/") and fname.count('/') == 2: return True
     return False
 
   def _find_markdown_files(self):
@@ -83,19 +90,19 @@ class AssetsFinder(Octopress):
     return ret
 
   @staticmethod
-  def _get_url_name(fname):
+  def get_url(fname):
     """
-    >>> AssetsFinder._get_url_name("foo/source/_posts/2013-11-27-foobar.markdown")
+    >>> AssetsFinder.get_url("foo/source/_posts/2013-11-27-foobar.markdown")
     'foobar'
-    >>> AssetsFinder._get_url_name("foo/source/_posts/2013-11-27-foo-bar.markdown")
+    >>> AssetsFinder.get_url("foo/source/_posts/2013-11-27-foo-bar.markdown")
     'foo-bar'
-    >>> AssetsFinder._get_url_name("foo/source/foobar/index.markdown")
+    >>> AssetsFinder.get_url("foo/source/foobar/index.markdown")
     'foobar'
-    >>> AssetsFinder._get_url_name("foo/source/foo-bar/index.markdown")
+    >>> AssetsFinder.get_url("foo/source/foo-bar/index.markdown")
     'foo-bar'
-    >>> AssetsFinder._get_url_name("foo/source/foobar.markdown")
+    >>> AssetsFinder.get_url("foo/source/foobar.markdown")
     'foobar'
-    >>> AssetsFinder._get_url_name("foo/source/foo-bar.markdown")
+    >>> AssetsFinder.get_url("foo/source/foo-bar.markdown")
     'foo-bar'
     """
     end_index = len(".markdown")
@@ -115,7 +122,7 @@ class AssetsFinder(Octopress):
       raise AssertionError("Unable to find any markdown files from " + self.dir)
     print("### processing %d markdown files" % (len(fnames)))
     for fname in fnames:
-      url_name = self._get_url_name(fname)
+      url_name = self.get_url(fname)
       f = open(fname)
       for line in f:
         for link in self._extract_from_markdown(line):
@@ -220,17 +227,18 @@ class AssetsFixer(AssetsFinder):
       print("### unable to find original_image for %s (references: %s)" % (fname,", ".join(self._linked[fname])))
       return
     # Execute
-    fname = self.dir + fname
-    dname = os.path.dirname(fname)
+    full_fname = self.dir + fname
+    dname = os.path.dirname(full_fname)
     if not os.access(dname,os.F_OK): os.mkdir(dname)
+    print("### images for: " + ",".join(self._linked[fname]))
     if fname.endswith("_t.jpg"):
-      cmdline = "convert -thumbnail 150x150^ -gravity center -extent 150x150 %s %s" % (original_fname,fname)
+      cmdline = "convert -thumbnail 150x150^ -gravity center -extent 150x150 %s %s" % (original_fname,full_fname)
       print("### " + cmdline)
       os.system(cmdline)
     elif fname.endswith("_c.jpg"):
-      self._resize_image(original_fname,fname,"750x750")
+      self._resize_image(original_fname,full_fname,"750x750")
     elif fname.endswith("_l.jpg"):
-      self._resize_image(original_fname,fname,"1024x750")
+      self._resize_image(original_fname,full_fname,"1024x750")
 
 
 if __name__ == '__main__':
