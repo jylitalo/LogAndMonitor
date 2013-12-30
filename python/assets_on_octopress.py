@@ -85,7 +85,7 @@ class AssetsFinder(Octopress):
   def _find_markdown_files(self):
     ret = []
     for root,dirnames,fnames in os.walk(self.dir):
-      flist = fnmatch.filter(fnames,"*.markdown")
+      flist = fnmatch.filter(fnames,"[0-9]*.markdown")
       ret.extend([os.path.join(root,fn) for fn in flist])
     return ret
 
