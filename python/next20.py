@@ -36,6 +36,7 @@ if __name__ == '__main__':
   f.write("[#%d-%d](/%d-%d/)\n\n" % (first-20,first-1,first-20,first-1))
   fname_list = glob.glob(dir + "/_posts/*.markdown")
   for i in range(first,first+20):
+    # print("### %d: %s" % (i,fname_list[i-1]))
     fname = fname_list[i-1]
     img,title = parse_post(fname)
     url = assets.get_url(fname)
