@@ -85,7 +85,7 @@ class AssetsFinder(Octopress):
   def _find_markdown_files(self):
     ret = []
     for root,dirnames,fnames in os.walk(self.dir):
-      flist = fnmatch.filter(fnames,"[0-9]*.markdown")
+      flist = fnmatch.filter(fnames,"[0-9a-z]*.markdown")
       ret.extend([os.path.join(root,fn) for fn in flist])
     return ret
 
@@ -186,6 +186,7 @@ class AssetsFixer(AssetsFinder):
     if fname[-end_index] != '_': end_index = len(".jpg")
     # Execute
     pattern = "%s%s.*" % (self._images_root,fname[begin_index:-end_index])
+    # print("### _original_image.pattern = " + pattern)
     original_fname = glob.glob(pattern)
     if original_fname: return original_fname[0]
     original_fname = glob.glob(pattern.replace('/IMG_','/img_'))
@@ -229,7 +230,8 @@ class AssetsFixer(AssetsFinder):
     # Execute
     full_fname = self.dir + fname
     dname = os.path.dirname(full_fname)
-    if not os.access(dname,os.F_OK): os.mkdir(dname)
+    if not os.access(dname,os.F_OK): os.makedirs(dname)
+    assert os.access(dname,os.W_OK), "need write access to " + dname
     print("### images for: " + ",".join(self._linked[fname]))
     if fname.endswith("_t.jpg"):
       cmdline = "convert -thumbnail 150x150^ -gravity center -extent 150x150 %s %s" % (original_fname,full_fname)
@@ -239,7 +241,8 @@ class AssetsFixer(AssetsFinder):
       self._resize_image(original_fname,full_fname,"750x750")
     elif fname.endswith("_l.jpg"):
       self._resize_image(original_fname,full_fname,"1024x750")
-
+    else:
+      print("### unknown suffix on " + fname)
 
 if __name__ == '__main__':
   assets = AssetsFixer()
