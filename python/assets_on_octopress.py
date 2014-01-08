@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+#
+# doctest requires MiniMock
+# in Mac OS X: sudo easy_install MiniMock
+#
 import fnmatch
 import glob
 import os
@@ -45,6 +49,18 @@ class AssetsFinder(Octopress):
 
   @dir.setter
   def dir(self, dname):
+    """
+    >>> a = AssetsFinder()
+    >>> a.dir("invalid")
+    Traceback (most recent call last):
+    ...
+    AssertionError: Source Directory (invalid) is missing sub-directories: _posts, images, assets
+    >>> from minimock import mock
+    >>> mock('os.path.isdir',returns=True)
+    >>> a.dir("valid")
+    >>> self._dir
+    valid
+    """
     errors = []
     for key in ["_posts","images","assets"]:
       if not os.path.isdir("%s/%s" % (dname,key)): errors.append(key)
@@ -83,6 +99,16 @@ class AssetsFinder(Octopress):
     return False
 
   def _find_markdown_files(self):
+    """
+    >>> a = AssetsFinder()
+    >>> ret1 = ('.',[],['index.markdown','1970-01-01-valid.markdown'])
+    >>> ret2 = ('abc',[],['.#foo.markdown#','abc.markdown','abc.markdown~'])
+    >>> from minimock import mock
+    >>> mock('os.walk',returns=[ret1,ret2])
+    >>> a._find_markdown_files()
+    Called os.walk(None)
+    ['./index.markdown', './1970-01-01-valid.markdown', 'abc/abc.markdown']
+    """
     ret = []
     for root,dirnames,fnames in os.walk(self.dir):
       flist = fnmatch.filter(fnames,"[0-9a-z]*.markdown")
