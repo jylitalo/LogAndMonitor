@@ -31,6 +31,7 @@ class Octopress(object):
 
   @staticmethod
   def head(datetime,layout,title):
+    if ':' in title: title = "'%s'" % (title)
     return """---
 date: '%s'
 layout: %s
