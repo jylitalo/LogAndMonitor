@@ -45,7 +45,7 @@ class PADpost(assets_on_octopress.AssetsFixer):
     'foo/source/_posts/2013-11-11-foo-bar.markdown'
     """
     dir = self.find_source_dir()
-    fname = subject.replace(' ','-').lower()
+    fname = subject.replace(' ','-').replace(':','').lower()
     fname = "%s/_posts/%s-%s.markdown" % (dir,taken_date,fname)
     return fname
 
@@ -69,6 +69,14 @@ class PADpost(assets_on_octopress.AssetsFixer):
 
   @staticmethod
   def _days(start_at, end_at):
+    """
+    >>> PADpost._days("2013-01-01","2013-01-31")
+    31
+    >>> PADpost._days("2013-01-01","2013-12-31")
+    365
+    >>> PADpost._days("2013-01-01","2014-12-31")
+    730
+    """
     start_t = datetime.datetime.strptime(start_at,"%Y-%m-%d")
     end_t = datetime.datetime.strptime(end_at,"%Y-%m-%d")
     return (end_t-start_t).days+1
