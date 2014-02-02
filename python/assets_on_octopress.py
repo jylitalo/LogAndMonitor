@@ -44,6 +44,7 @@ class AssetsFinder(Octopress):
   def __init__(self):
     self._dir = None
     self._linked = {}
+    self._url_names = {}
 
   @property
   def dir(self): return self._dir
@@ -150,6 +151,9 @@ class AssetsFinder(Octopress):
     print("### processing %d markdown files" % (len(fnames)))
     for fname in fnames:
       url_name = self.get_url(fname)
+      if url_name in self._url_names:
+        raise AssertionError("Found duplicate url on following files: %s, %s" % (self._url_names[url_name],fname))
+      self._url_names[url_name] = fname
       f = open(fname)
       for line in f:
         for link in self._extract_from_markdown(line):
