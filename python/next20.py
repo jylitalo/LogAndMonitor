@@ -9,7 +9,7 @@ import assets_on_octopress
 
 def get_head(assets,title,first):
   d = time.strftime("%Y-%m-%d")
-  title = "%s (#%d-%d/365)" % (title,first,first+19)
+  title = "%s (#%d-%d/730)" % (title,first,first+19)
   return assets.head(d + " 12:00:00","page",title)
 
 def parse_post(fname):
@@ -35,8 +35,10 @@ if __name__ == '__main__':
   f.write(get_head(assets,title,first))
   f.write("[#%d-%d](/%d-%d/)\n\n" % (first-20,first-1,first-20,first-1))
   fname_list = glob.glob(dir + "/_posts/*.markdown")
+  list_len = len(fname_list)
   for i in range(first,first+20):
     # print("### %d: %s" % (i,fname_list[i-1]))
+    if i > list_len: break
     fname = fname_list[i-1]
     img,title = parse_post(fname)
     url = assets.get_url(fname)
