@@ -13,28 +13,50 @@ import exifread
 
 import assets_on_octopress
 
-class LensAnalysesOnOctopress(object):
+class LensFromEXIF(object):
   def __init__(self):
     self.debug = False
 
-  def process_file(self,fname):
-    """ 
-      Check if _fname_ has EXIF information with focal length that was used 
-      in camera, when photo was taken.
-      Return None, if focal length was not found
-      Return focal length as string with "mm" suffix, if focal length was found.
-    """
-    if self.debug: print("### processing " + fname)
-    fl_name = "EXIF FocalLength"
-    f = open(fname)
-    tags = exifread.process_file(f, stop_tag=fl_name, details=False)
+  def process_file(self,img_name):
+    assert os.access(img_name, os.R_OK), "Need read access on " + img_name
+    f = open(img_name)
+    tags = exifread.process_file(f, details=False)
     f.close()
-    if not tags.has_key(fl_name): return None
-    fl = tags[fl_name]
-    if self.debug: print("### %s -> %d" % (fname,fl))
-    if fl > 60: fl=75
-    return str(fl) + "mm"
 
+    fl = dt = lens = None
+    if tags.has_key("EXIF DateTimeOriginal"): dt = tags["EXIF DateTimeOriginal"].values
+    if tags.has_key("EXIF FocalLength"): fl = tags["EXIF FocalLength"].values[0].num
+    if tags.has_key("EXIF LensModel"): lens = tags["EXIF LensModel"].values.strip()
+
+    errmsg = None
+    if not (dt or fl): errmsg = "DateTime and FocalLength are"
+    elif not dt: errmsg = "DateTime is"
+    elif not fl: errmsg = "FocalLength is"
+    if errmsg: raise AssertionError(errmsg + " missing from " + img_name)
+
+    dt = dt[:10].replace(':','-')
+    return dt,self._lens_name(fl,lens)
+
+  @staticmethod
+  def _lens_name(focal_length,lens):
+    oly12 = "Olympus M.Zuiko 12mm f/2"
+    pl25 = "Panasonic Leica DG Summilux 25mm f/1.4"
+    oly60 = "Olympus M.Zuiko 60mm f/2.8 Macro"
+    lenses_by_model = { "OLYMPUS M.12-50mm F3.5-6.3" : "Olympus M.Zuiko 12-50mm f/3.5-6.3",
+                        "OLYMPUS M.75-300mm F4.8-6.7 II" : "Olympus M.Zuiko 75-300mm f/4.8-6.7 II",
+                        "OLYMPUS M.12mm F2.0" : oly12,
+                        "LEICA DG SUMMILUX 25/F1.4" : pl25,
+                        "OLYMPUS M.60mm F2.8 Macro" : oly60 }
+    if lens:
+      if lens in lenses_by_model: return lenses_by_model[lens]
+      print "### No pretty name for >%s<" % (lens)
+    else:
+      print "### No lens info but focal length was " + str(focal_length)
+    lenses_by_fl = { 12 : oly12, 25 : pl25, 60 : oly60 }
+    if focal_length in lenses_by_fl: return lenses_by_fl[focal_length]
+    raise AssertionError("Unable to map lens name for (%s,%s)" % (str(focal_length),lens))
+
+class LensAnalysesOnOctopress(LensFromEXIF):
   def map_filename(self,fname):
     """ 
       Map filename in blog post to filename into original image with 
@@ -43,7 +65,7 @@ class LensAnalysesOnOctopress(object):
     return os.path.expanduser(fname.replace("/images/","~/kuvat/jpg/",1).replace('_c.jpg','.jpg'))
 
   def scan(self,dir):
-    focal_lengths = {'missing':[]}
+    lenses = {}
     for fname in glob.glob("%s%s*.markdown" % (dir,os.sep)):
       if self.debug: print("### Checking " + fname)
       f = open(fname)
@@ -53,8 +75,7 @@ class LensAnalysesOnOctopress(object):
         '.markdown' from end of filenames. 
       """
       status = 0
-      title = None
-      fl = None
+      title = lens = None
       for line in f:
         """
           status = 0 ... beginning of blog post
@@ -68,13 +89,14 @@ class LensAnalysesOnOctopress(object):
           img_name = line.split('](',1)[1].split(')',1)[0]
           full_img_name = self.map_filename(img_name)
           assert os.access(full_img_name, os.R_OK), "Unable to read img_file (%s) from %s" % (img_name,fname)
-          fl = self.process_file(full_img_name)
+          try:
+            dt,lens = self.process_file(full_img_name)
+          except AssertionError: lens = "Missing"
           break
       f.close()
-      if not fl: focal_lengths['missing'].append((url_name,title))
-      elif fl in focal_lengths: focal_lengths[fl].append((url_name,title))
-      else: focal_lengths[fl] = [(url_name,title)]
-    return focal_lengths
+      if lens in lenses: lenses[lens].append((url_name,title))
+      else: lenses[lens] = [(url_name,title)]
+    return lenses
     
 if __name__ == '__main__':
   op = assets_on_octopress.Octopress
@@ -83,22 +105,15 @@ if __name__ == '__main__':
   if os.access(ofname, os.F_OK):
     print("File (%s) already exists." % (ofname))
     sys.exit(1)
-  focal_lengths = LensAnalysesOnOctopress().scan(dir + "/_posts")
+  lenses = LensAnalysesOnOctopress().scan(dir + "/_posts")
   """ create report from dictionary """
-  lens_name = {
-      "missing" : "Not available",
-      "12mm" : "Olympus M.Zuiko 12mm f/2",
-      "25mm" : "Panasonic Leica DG Summilux 25mm f/1.4",
-      "60mm" : "Olympus M.Zuiko 60mm f/2.8 Macro",
-      "75mm" : "Olympus M.Zuiko 75-300mm f/4.8-6.7 II"
-      }
-  k = lens_name.keys()
-  k.sort()
   f = open(ofname,"w")
   f.write(op.head(time.strftime("%Y-%m-%d 12:00:00"),"page","Posts by lens"))
-  for fl in k:
-    f.write("<div><b>%s (%d)</b><br />\n" % (lens_name[fl],len(focal_lengths[fl])))
-    for url,name in focal_lengths[fl]:
+  k = lenses.keys()
+  k.sort()
+  for lens in k:
+    f.write("<div><b>%s (%d)</b><br />\n" % (lens,len(lenses[lens])))
+    for url,name in lenses[lens]:
       f.write('<a href="%s">%s</a><br />\n' % (url,name))
     f.write('</div>\n')
   f.close()
