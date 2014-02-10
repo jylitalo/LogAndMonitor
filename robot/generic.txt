@@ -1,0 +1,7 @@
+*** Keywords ***
+Known Issue  [Arguments]  ${deadline}
+  # Usage: Known Issue  2014-12-30 12:00:00
+  ${t} =  Get Time
+  Run Keyword If  '${t}' < '${deadline}'  Set Tags  noncritical
+  Run Keyword If  '${t}' < '${deadline}'  Log  Tagged as noncritical
+  Run Keyword If  '${t}' > '${deadline}'  Log  Deadline (${deadline}) is in past.
