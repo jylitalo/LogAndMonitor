@@ -85,6 +85,7 @@ class LensAnalysesOnOctopress(LensFromEXIF):
         if line.startswith("---"): status += 1
         elif status == 1 and line.startswith("title: "): 
           title = line[7:].strip()
+          if title.startswith("'"): title = title[1:-1]
         elif status == 2 and line.startswith("!["):
           img_name = line.split('](',1)[1].split(')',1)[0]
           full_img_name = self.map_filename(img_name)
