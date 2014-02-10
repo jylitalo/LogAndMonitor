@@ -5,39 +5,15 @@ import os
 import sys
 import datetime
 
-# on Mac OS X:
-# brew install python
-# pip install exifread
-# use python from /usr/local/bin (instead of /usr/bin/python)
-import exifread
-
 import assets_on_octopress
+import lens_analyses_on_octopress
 
 class PADpost(assets_on_octopress.AssetsFixer):
   def __init__(self, start_at, end_at):
     assets_on_octopress.AssetsFixer.__init__(self)
     self.__start_at = start_at
     self.__end_at = end_at
-
-  def _process_file(self,img_name):
-    assert os.access(img_name, os.R_OK), "Need read access on " + img_name
-    f = open(img_name)
-    tags = exifread.process_file(f)
-    f.close()
-
-    fl = dt = lens = None
-    if tags.has_key("EXIF DateTimeOriginal"): dt = tags["EXIF DateTimeOriginal"].values
-    if tags.has_key("EXIF FocalLength"): fl = tags["EXIF FocalLength"].values[0].num
-    if tags.has_key("EXIF LensModel"): lens = tags["EXIF LensModel"].values
-
-    errmsg = None
-    if not (dt or fl): errmsg = "DateTime and FocalLength are"
-    elif not dt: errmsg = "DateTime is"
-    elif not fl: errmsg = "FocalLength is"
-    if errmsg: raise AssertionError(errmsg + " missing from " + img_name)
-
-    dt = dt[:10].replace(':','-')
-    return dt,self._lens_name(fl,lens)
+    self.exif = lens_analyses_on_octopress.LensFromEXIF()
 
   def _post_name(self,taken_date,subject):
     """
@@ -50,7 +26,7 @@ class PADpost(assets_on_octopress.AssetsFixer):
     return fname
 
   def post(self,img_name,subject):
-    taken_date, lens = self._process_file(img_name)
+    taken_date, lens = self.exif.process_file(img_name)
 
     days_done = self._days(self.__start_at,taken_date)
     days_total = self._days(self.__start_at,self.__end_at)
@@ -80,20 +56,6 @@ class PADpost(assets_on_octopress.AssetsFixer):
     start_t = datetime.datetime.strptime(start_at,"%Y-%m-%d")
     end_t = datetime.datetime.strptime(end_at,"%Y-%m-%d")
     return (end_t-start_t).days+1
-
-  @staticmethod
-  def _lens_name(focal_length,lens):
-    oly12 = "Olympus M.Zuiko 12mm f/2"
-    lenses_by_model = { "OLYMPUS M.12-50mm F3.5-6.3" : "Olympus M.Zuiko 12-50mm f/3.5-6.3",
-                        "OLYMPUS M.12mm F2.0" : oly12 }
-    if lens:
-      if lens in lenses_by_model: return lenses_by_model[lens]
-      print "### No pretty name for " + lens
-    lenses_by_fl = { 12 : oly12,
-                     25 : "Panasonic Leica DG Summilux 25mm f/1.4",
-                     60 : "Olympus M.Zuiko 60mm f/2.8 Macro" }
-    if focal_length in lenses_by_fl: return lenses_by_fl[focal_length]
-    raise AssertionError("Unable to map lens name for (%s,%s)" % (str(focal_length),lens))
 
   @staticmethod
   def _img_url(taken_date, img_name):
