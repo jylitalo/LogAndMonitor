@@ -25,9 +25,10 @@ class PADpost(assets_on_octopress.AssetsFixer):
     tags = exifread.process_file(f)
     f.close()
 
-    fl = dt = None
+    fl = dt = lens = None
     if tags.has_key("EXIF DateTimeOriginal"): dt = tags["EXIF DateTimeOriginal"].values
     if tags.has_key("EXIF FocalLength"): fl = tags["EXIF FocalLength"].values[0].num
+    if tags.has_key("EXIF LensModel"): lens = tags["EXIF LensModel"].values
 
     errmsg = None
     if not (dt or fl): errmsg = "DateTime and FocalLength are"
@@ -36,8 +37,7 @@ class PADpost(assets_on_octopress.AssetsFixer):
     if errmsg: raise AssertionError(errmsg + " missing from " + img_name)
 
     dt = dt[:10].replace(':','-')
-    if fl > 60: fl=75
-    return dt,self._lens_name(fl)
+    return dt,self._lens_name(fl,lens)
 
   def _post_name(self,taken_date,subject):
     """
@@ -82,13 +82,18 @@ class PADpost(assets_on_octopress.AssetsFixer):
     return (end_t-start_t).days+1
 
   @staticmethod
-  def _lens_name(value):
-    lenses = { 12 : "Olympus M.Zuiko 12mm f/2",
-               25 : "Panasonic Leica DG Summilux 25mm f/1.4",
-               60 : "Olympus M.Zuiko 60mm f/2.8 Macro" }
-    if value in lenses: return lenses[value]
-    else:
-      raise AssertionError("Unable to map focal length (%s) to lens" % (value))
+  def _lens_name(focal_length,lens):
+    oly12 = "Olympus M.Zuiko 12mm f/2"
+    lenses_by_model = { "OLYMPUS M.12-50mm F3.5-6.3" : "Olympus M.Zuiko 12-50mm f/3.5-6.3",
+                        "OLYMPUS M.12mm F2.0" : oly12 }
+    if lens:
+      if lens in lenses_by_model: return lenses_by_model[lens]
+      print "### No pretty name for " + lens
+    lenses_by_fl = { 12 : oly12,
+                     25 : "Panasonic Leica DG Summilux 25mm f/1.4",
+                     60 : "Olympus M.Zuiko 60mm f/2.8 Macro" }
+    if focal_length in lenses_by_fl: return lenses_by_fl[focal_length]
+    raise AssertionError("Unable to map lens name for (%s,%s)" % (str(focal_length),lens))
 
   @staticmethod
   def _img_url(taken_date, img_name):
