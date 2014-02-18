@@ -29,7 +29,7 @@ module Jekyll
         link = @image_link["link"]
         "<a href=\"#{link}\" title=\"#{title}\"><img src=\"#{image}\" alt=\"#{title}\" title=\"#{title}\" /></a>"
       else
-        "Error processing input, expected syntax: {% image_link /path/to/image \"title text\" link %}"
+        "Error processing input, expected syntax: {% img_link /path/to/image \"title text\" link %}"
       end
     end
   end
