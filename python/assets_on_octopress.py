@@ -176,6 +176,9 @@ class AssetsFinder(Octopress):
       ['/images/2012/11/IMG_0156_t.jpg', '/images/2012/11/IMG_0156_l.jpg']
     """
     links = []
+    if line.startswith("{% slide "):
+      link = line.split(' ')[2]
+      line = "(%s_t.jpg)(%s_l.jpg)" % (link,link)
     for key in ["images","assets"]:
       for field in line.split("(/" + key)[1:]:
         field = "/%s%s" % (key,field[:field.find(')')])
