@@ -16,17 +16,29 @@ class Octopress(object):
     """
     >>> Octopress.find_source_dir("/tmp/octo/source/_posts")
     '/tmp/octo/source'
+    >>> Octopress.find_source_dir("/tmp/octo/source/by-lens")
+    '/tmp/octo/source'
     >>> Octopress.find_source_dir("/tmp/octo/source")
     '/tmp/octo/source'
+    >>> Octopress.find_source_dir("/tmp/jekyll/_posts")
+    '/tmp/jekyll'
+    >>> Octopress.find_source_dir("/tmp/jekyll/_site")
+    '/tmp/jekyll'
     >>> Octopress.find_source_dir("/bound/to/fail")
     Traceback (most recent call last):
     ...
     AssertionError: unable to determine source directory from /bound/to/fail
     """
+    # Octopress
     if dir.endswith("/source"): return dir
     if dir.endswith("/source/_posts"): return dir[:dir.rfind('/')]
     if os.access(dir + "/config.rg", os.R_OK) and os.access(dir + "/source",os.F_OK): 
       return dir + "/source"
+    if "/source/" in dir: return dir[:dir.rfind('/source/')+len('/source')]
+    # Jekyll
+    if dir.endswith("/_posts"): return dir[:dir.rfind('/')]
+    if dir.endswith("/_site"): return dir[:dir.rfind('/')]
+    if os.access(dir + "/_posts", os.R_OK): return dir
     raise AssertionError("unable to determine source directory from " + dir)
 
   @staticmethod
