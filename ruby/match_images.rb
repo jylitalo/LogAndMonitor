@@ -7,7 +7,7 @@ new_fname = old_fname + ".new"
 
 fgp = File.open(gp_links)
 gp_links = {}
-resolution="w1280-h850"
+resolution="w1280-h800"
 fgp.each_line do |line|
   line = line.strip
   line.sub!(/\/w[0-9]+-h[0-9]+-no\//,"/#{resolution}-no/")
