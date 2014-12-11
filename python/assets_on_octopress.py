@@ -76,7 +76,7 @@ class AssetsFinder(Octopress):
     valid
     """
     errors = []
-    for key in ["_posts","images","assets"]:
+    for key in ["_posts","images"]:
       if not os.path.isdir("%s/%s" % (dname,key)): errors.append(key)
     if errors:
       raise AssertionError("Source directory (%s) is missing sub-directories: %s" % (dir,", ".join(errors)))
@@ -124,7 +124,7 @@ class AssetsFinder(Octopress):
     ['./index.markdown', './1970-01-01-valid.markdown', 'abc/abc.markdown']
     """
     ret = []
-    for root,dirnames,fnames in os.walk(self.dir):
+    for root,dirnames,fnames in os.walk(self.dir, followlinks=True):
       flist = fnmatch.filter(fnames,"[0-9a-z]*.markdown")
       ret.extend([os.path.join(root,fn) for fn in flist])
     return ret
@@ -157,6 +157,7 @@ class AssetsFinder(Octopress):
 
   def scan(self):
     self.dir = self.find_source_dir()
+    print("### using %s as root directory" % (self.dir))
     fnames = self._find_markdown_files()
     if not fnames:
       raise AssertionError("Unable to find any markdown files from " + self.dir)
@@ -191,6 +192,9 @@ class AssetsFinder(Octopress):
     if line.startswith("{% slide "):
       link = line.split(' ')[2]
       line = "(%s_t.jpg)(%s_l.jpg)" % (link,link)
+    elif line.startswith("{% gslide "):
+      link = line.split(' ')[2]
+      line = "(%s_t.jpg)" % (link)
     for key in ["images","assets"]:
       for field in line.split("(/" + key)[1:]:
         field = "/%s%s" % (key,field[:field.find(')')])
@@ -286,7 +290,7 @@ class AssetsFixer(AssetsFinder):
     elif fname.endswith("_c.jpg"):
       self._resize_image(original_fname,full_fname,"750x750")
     elif fname.endswith("_l.jpg"):
-      self._resize_image(original_fname,full_fname,"1024x750")
+      self._resize_image(original_fname,full_fname,"1280x800")
     else:
       print("### unknown suffix on " + fname)
 
