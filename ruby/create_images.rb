@@ -12,6 +12,17 @@ def establish_target_dir(post_name)
   return dir
 end # establish_target_dir
 
+def find_image(jpg)
+  home = Dir.home()
+  jpeg_home = "#{home}/kuvat/jpg"
+  image = Dir.glob("#{jpeg_home}/#{jpg}.*")[0]
+  if not image
+    jpg.sub!("/IMG_", "/img_")
+    image = Dir.glob("#{jpeg_home}/#{jpg}.*")[0]
+  end
+  return image
+end # find_image
+
 post_name = ARGV[0]
 slides = []
 
@@ -23,22 +34,16 @@ f.each_line do |line|
 end # f.each_line
 f.close
 
-home = Dir.home()
-jpeg_home = "#{home}/kuvat/jpg"
 target_dir = establish_target_dir(post_name)
 
 slides.each do |jpg|
   fname = jpg.split("/").last
-  original = Dir.glob("#{jpeg_home}/#{jpg}.*")[0]
-  if not original
-    jpg.sub!("/IMG_", "/img_")
-    original = Dir.glob("#{jpeg_home}/#{jpg}.*")[0]
-  end
+  original = find_image(jpg)
   img = "#{target_dir}/#{fname}.jpg"
   unless File.exists?(img)
     cmd = "convert -resize 2000x2000 #{original} #{img}"
     puts "### #{cmd}"
     system cmd
-  end # unless
+  end # unless File.exists?(img)
 end # slides.each
 
