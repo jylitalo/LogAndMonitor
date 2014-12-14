@@ -1,5 +1,17 @@
 require_relative 'ylitalot_helper'
 
+def extract_slides(fname)
+  slides = []
+  f = File.open(fname)
+  f.each_line do |line|
+    if line.start_with?("{% slide /images")
+      slides += [extract_jpg(line)]
+    end # if
+  end # f.each_line
+  f.close
+  return slides
+end # extract_slides
+
 def establish_target_dir(post_name)
   home = Dir.home()
   dir = "#{home}/kuvat/net2google/#{post_name}"
@@ -24,16 +36,8 @@ def find_image(jpg)
 end # find_image
 
 post_name = ARGV[0]
-slides = []
-
-f = File.open(find_post(post_name))
-f.each_line do |line|
-  if line.start_with?("{% slide /images")
-    slides += [extract_jpg(line)]
-  end # if
-end # f.each_line
-f.close
-
+fname = find_post(post_name)
+slides = extract_slides(fname)
 target_dir = establish_target_dir(post_name)
 
 slides.each do |jpg|
