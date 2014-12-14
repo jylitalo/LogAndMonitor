@@ -1,5 +1,17 @@
 require_relative 'ylitalot_helper'
 
+def establish_target_dir(post_name)
+  home = Dir.home()
+  dir = "#{home}/kuvat/net2google/#{post_name}"
+  unless Dir.exists?(dir)
+    puts "### #{dir} created."
+    Dir.mkdir(dir)
+  else
+    puts "### #{dir} found."
+  end # unless
+  return dir
+end # establish_target_dir
+
 post_name = ARGV[0]
 slides = []
 
@@ -13,13 +25,7 @@ f.close
 
 home = Dir.home()
 jpeg_home = "#{home}/kuvat/jpg"
-target_dir = "#{home}/kuvat/net2google/#{post_name}"
-unless Dir.exists?(target_dir)
-  puts "### #{target_dir} created."
-  Dir.mkdir(target_dir)
-else
-  puts "### #{target_dir} found."
-end # unless
+target_dir = establish_target_dir(post_name)
 
 slides.each do |jpg|
   fname = jpg.split("/").last
@@ -35,3 +41,4 @@ slides.each do |jpg|
     system cmd
   end # unless
 end # slides.each
+
