@@ -1,42 +1,4 @@
 require_relative 'ylitalot_helper'
-require 'Picasa' 
-
-class ImagesFromPicasa
-  def initialize
-    @client = Picasa::Client.new(user_id: "juha.ylitalo@gmail.com")
-  end # initialize
-
-  def find_album_id(name)
-    albums = []
-    @client.album.list.entries.each do |album|
-      if album.title == name
-        puts "### Found album id ##{album.id} for #{name}"
-        return album.id
-      else
-        albums += [album.title]
-      end # if album.title ...
-    end # client.album.list.entries.each
-      
-    albums.sort!
-    puts "### No album id found for #{name}"
-    puts "### Found following albums: #{albums.to_s}"
-    exit 3
-  end # find_album_id
-
-  def fetch_links(album)
-    resolution="w1280-h800"
-    links = {}
-    album_id = self.find_album_id(album)
-    @client.album.show(album_id).entries.each do |photo|
-      url = photo.media.thumbnails[0].url
-      url.sub!(/\/s[0-9]+\//,"/#{resolution}-no/")
-      jpg = url.split("/").last
-      puts "### JPG = >#{jpg}< >#{url}<"
-      links[jpg] = url
-    end # client.album.show().entries
-    return links
-  end # fetch_links
-end # class ImagesFromPicasa
 
 def slide2gslide(line,links)
   jpg = extract_jpg(line).split("/").last
@@ -59,12 +21,18 @@ def slide2gslide(line,links)
 end # slide2gslide
 
 post_name = ARGV[0]
-album_name = ARGV[1]
+album_name = ARGV[1] if ARGV.length > 1
 
 old_fname = find_post(post_name)
 new_fname = old_fname + ".new"
 
-ifp = ImagesFromPicasa.new
+album_name = find_album_name(old_fname) if not defined?(album_name)
+if album_name.nil?
+  puts "### G+ album name not defined as command line argument and missing from markdown file as well"
+  exit 4
+end # if
+
+ifp = ImagesFromPicasa.new(nil)
 links = ifp.fetch_links(album_name)
 puts "### Found links for #{links.length} G+ images"
 
