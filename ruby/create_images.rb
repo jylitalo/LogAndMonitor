@@ -36,7 +36,14 @@ def find_image(jpg)
 end # find_image
 
 post_name = ARGV[0]
+album_name = ARGV[1]
+password = ARGV[2]
+
 fname = find_post(post_name)
+
+ifp = ImagesFromPicasa.new(password)
+album_id = ifp.create_album(album_name)
+
 slides = extract_slides(fname)
 target_dir = establish_target_dir(post_name)
 
@@ -48,6 +55,6 @@ slides.each do |jpg|
     cmd = "convert -resize 2000x2000 #{original} #{img}"
     puts "### #{cmd}"
     system cmd
+    ifp.send_photo(album_id,img)
   end # unless File.exists?(img)
 end # slides.each
-
