@@ -3,40 +3,48 @@ require 'Picasa' # https://github.com/morgoth/picasa
 class ImagesFromPicasa
   def initialize(password)
     @client = Picasa::Client.new(user_id: "juha.ylitalo@gmail.com", password: password)
+    @links = {}
+    @album_id = nil
   end # initialize
 
   def find_album_id(name)
-    albums = []
     @client.album.list.entries.each do |album|
       if album.title == name
-        puts "### Found album id ##{album.id} for #{name}"
-        return album.id
-      else
-        albums += [album.title]
+        @album_id = album.id
+        puts "### Found album id ##{@album_id} for #{name}"
+        return @album_id
       end # if album.title ...
     end # client.album.list.entries.each
+
     return nil
   end # find_album_id
 
   def create_album(name)
-    album_id = self.find_album_id(name)
-    if not album_id.nil?
-      puts "### Found existing album #{album_id}"
-      return album_id
+    unless self.find_album_id(name).nil?
+      puts "### Found existing album #{@album_id}"
+      return @album_id
     end
 
-    album = @client.album.create(title: name, access: "public")
-    puts "### Created new album #{album.id}"
-    return album.id
+    @album_id = @client.album.create(title: name, access: "public").id
+    puts "### Created new album #{@album_id}"
+    return @album_id
   end  # create_album
 
-  def send_photo(album_id,fname)
-    puts "### Uploading photo #{fname} to #{album_id}"
-    @client.photo.create(album_id, file_path: fname)
+  def _put_photo_into_links(photo)
+    resolution="w1280-h800"
+    url = photo.media.thumbnails[0].url
+    url.sub!(/\/s[0-9]+\//,"/#{resolution}-no/")
+    jpg = url.split("/").last
+    @links[jpg] = url
+  end
+
+  def send_photo(fname)
+    puts "### Uploading photo #{fname} to #{@album_id}"
+    photo = @client.photo.create(@album_id, file_path: fname)
+    self._put_photo_into_links(photo)
   end
 
   def fetch_links(album)
-    resolution="w1280-h800"
     links = {}
     album_id = self.find_album_id(album)
     if album_id.nil?
@@ -45,14 +53,30 @@ class ImagesFromPicasa
     end
 
     @client.album.show(album_id).entries.each do |photo|
-      url = photo.media.thumbnails[0].url
-      url.sub!(/\/s[0-9]+\//,"/#{resolution}-no/")
-      jpg = url.split("/").last
-      # puts "### JPG = >#{jpg}< >#{url}<"
-      links[jpg] = url
+      self._put_photo_into_links(photo)
     end # client.album.show().entries
     return links
   end # fetch_links
+
+  def slide2gslide(line)
+    jpg = extract_jpg(line).split("/").last
+    suffix = nil
+    if @links.has_key?(jpg + ".jpg")
+      suffix = ".jpg"
+    elsif @links.has_key?(jpg + ".JPG")
+      suffix = ".JPG"
+    else
+      puts "Unable to find G+ image for #{jpg}"
+      return line
+    end # if
+
+    if line.start_with?("{% slide /images")
+      line.sub! "{% slide ", "{% gslide "
+      line.sub! " %}", " #{@links[jpg + suffix]} %}"
+    end # if
+    @links.delete(jpg + suffix)
+    return line
+  end # slide2gslide
 end # class ImagesFromPicasa
 
 def find_post(name)
