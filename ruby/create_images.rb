@@ -65,8 +65,9 @@ slides.each do |jpg|
     cmd = "convert -resize 2000x2000 #{original} #{img}"
     puts "### #{cmd}"
     system cmd
-    ifp.send_photo(img)
   end # unless File.exists?(img)
+  ifp.send_photo(img)
+  File.unlink(img)
 end # slides.each
 
 ###
@@ -82,7 +83,7 @@ fin.each_line do |line|
   elsif line.start_with?("{% gslide /images")
     ifp.slide2gslide(line)
   end # if
-  fout.write(line)
+  fout.write(line) unless line.start_with?("<!-- G+: ")
 end # fin.each_line
 fout.write("\n<!-- G+: #{album_name} -->\n")
 fout.close
@@ -95,3 +96,4 @@ File.rename(new_fname,post_fname)
 #  puts "Following images were found from G+, but no matching images in markdown"
 #  puts links
 #end # if
+Dir.rmdir(target_dir)
