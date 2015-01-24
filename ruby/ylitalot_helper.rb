@@ -1,11 +1,20 @@
+require 'yaml'
 require 'Picasa' # https://github.com/morgoth/picasa
 
 class ImagesFromPicasa
-  def initialize(password)
-    @client = Picasa::Client.new(user_id: "juha.ylitalo@gmail.com", password: password)
+  def initialize()
+    config_file = "#{Dir.home()}/.ylitalot"
+    config  = YAML.load_file(config_file)
+    @user_id = config['picasa']['username']
+    @password = config['picasa']['password']
     @links = {}
     @album_id = nil
+    connect
   end # initialize
+
+  def connect
+    @client = Picasa::Client.new(user_id: @user_id, password: @password)
+  end # connect
 
   def find_album_id(name)
     @client.album.list.entries.each do |album|
@@ -39,10 +48,24 @@ class ImagesFromPicasa
   end
 
   def send_photo(fname)
+    count = 0
     puts "### Uploading photo #{fname} to #{@album_id}"
-    photo = @client.photo.create(@album_id, file_path: fname)
+    begin
+      photo = @client.photo.create(@album_id, file_path: fname)
+    rescue SystemCallError
+      count += 1
+      if count < 3
+        connect
+        puts "### System call error ... retrying #{count}"
+        retry
+      else
+        puts "### Retries ran out ... exiting"
+        raise
+      end # if 
+    end # begin
+    puts "### Upload completed ..." if count > 0
     self._put_photo_into_links(photo)
-  end
+  end # send_photo
 
   def fetch_links(album)
     links = {}

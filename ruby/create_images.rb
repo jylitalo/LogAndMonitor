@@ -40,15 +40,15 @@ def find_image(jpg)
 end # find_image
 
 post_name = ARGV[0]
-album_name = ARGV[1]
-password = ARGV[2]
+album_name = ARGV[1] if ARGV.length > 1
 
 post_fname = find_post(post_name)
+album_name = find_album_name(post_fname) if not defined?(album_name)
 
 ### 
 # Create album into G+
 ###
-ifp = ImagesFromPicasa.new(password)
+ifp = ImagesFromPicasa.new
 album_id = ifp.create_album(album_name)
 
 ###

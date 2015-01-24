@@ -12,7 +12,7 @@ if album_name.nil?
   exit 4
 end # if
 
-ifp = ImagesFromPicasa.new(nil)
+ifp = ImagesFromPicasa.new
 links = ifp.fetch_links(album_name)
 puts "### Found links for #{links.length} G+ images"
 
