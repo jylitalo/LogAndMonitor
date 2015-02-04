@@ -195,6 +195,10 @@ class AssetsFinder(Octopress):
     elif line.startswith("{% gslide "):
       link = line.split(' ')[2]
       line = "(%s_t.jpg)" % (link)
+    elif line.startswith("{% cover "):
+      link = line.split(' ')[2]
+      line = "(%s_c.jpg)" % (link)
+
     for key in ["images","assets"]:
       for field in line.split("(/" + key)[1:]:
         field = "/%s%s" % (key,field[:field.find(')')])
@@ -225,7 +229,8 @@ class AssetsFinder(Octopress):
 class AssetsFixer(AssetsFinder):
   def __init__(self):
     AssetsFinder.__init__(self)
-    self._images_root = os.path.expanduser("~/kuvat/original_jpg")
+    self._images_root = []
+    for d in ["original_jpg","jpg"]: self._images_root.append(os.path.expanduser("~/kuvat/" + d))
     self._validate_original = True
     self._convert_missing = True
 
@@ -235,12 +240,13 @@ class AssetsFixer(AssetsFinder):
     end_index = len("_t.jpg")
     if fname[-end_index] != '_': end_index = len(".jpg")
     # Execute
-    pattern = "%s%s.*" % (self._images_root,fname[begin_index:-end_index])
-    # print("### _original_image.pattern = " + pattern)
-    original_fname = glob.glob(pattern)
-    if original_fname: return original_fname[0]
-    original_fname = glob.glob(pattern.replace('/IMG_','/img_'))
-    if original_fname: return original_fname[0]
+    for d in self._images_root:
+      pattern = "%s%s.*" % (d,fname[begin_index:-end_index])
+      # print("### _original_image.pattern = " + pattern)
+      original_fname = glob.glob(pattern)
+      if original_fname: return original_fname[0]
+      original_fname = glob.glob(pattern.replace('/IMG_','/img_'))
+      if original_fname: return original_fname[0]
     return None
 
   def _validate_found(self,fname):
