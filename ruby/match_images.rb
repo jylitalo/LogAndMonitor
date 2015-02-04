@@ -12,8 +12,7 @@ if album_name.nil?
   exit 4
 end # if
 
-ifp = ImagesFromPicasa.new
-links = ifp.fetch_links(album_name)
+ifp = ImagesFromPicasa.new album_name
 puts "### Found links for #{links.length} G+ images"
 
 fin = File.open(old_fname)
@@ -30,10 +29,6 @@ fout.write("\n<!-- G+: #{album_name} -->\n")
 fout.close
 fin.close
 
-unless links.empty?
-  puts "Following images were found from G+, but no matching images in markdown"
-  puts links
-end # if
-
 File.unlink(old_fname)
 File.rename(new_fname,old_fname)
+ifp.print_links

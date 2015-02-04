@@ -52,8 +52,7 @@ end # if
 ### 
 # Create album into G+
 ###
-ifp = ImagesFromPicasa.new
-album_id = ifp.create_album(album_name)
+ifp = ImagesFromPicasa.new album_name
 
 ###
 # Find slides in a post, create images and upload them.
@@ -95,9 +94,6 @@ fin.close
 
 File.unlink(post_fname)
 File.rename(new_fname,post_fname)
-
-#unless ifp.links.empty?
-#  puts "Following images were found from G+, but no matching images in markdown"
-#  puts links
-#end # if
 Dir.rmdir(target_dir)
+
+ifp.print_links

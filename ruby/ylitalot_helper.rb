@@ -2,14 +2,19 @@ require 'yaml'
 require 'Picasa' # https://github.com/morgoth/picasa
 
 class ImagesFromPicasa
-  def initialize()
+  def initialize(album)
     config_file = "#{Dir.home()}/.ylitalot"
     config  = YAML.load_file(config_file)
     @user_id = config['picasa']['username']
     @password = config['picasa']['password']
     @links = {}
-    @album_id = nil
     connect
+    @album_id = find_album_id album
+    if @album_id.nil?
+      self.create_album album
+    else
+      self.fetch_links
+    end
   end # initialize
 
   def connect
@@ -29,7 +34,7 @@ class ImagesFromPicasa
   end # find_album_id
 
   def create_album(name)
-    unless self.find_album_id(name).nil?
+    unless @album_id.nil?
       puts "### Found existing album #{@album_id}"
       return @album_id
     end
@@ -67,18 +72,16 @@ class ImagesFromPicasa
     self._put_photo_into_links(photo)
   end # send_photo
 
-  def fetch_links(album)
-    links = {}
-    album_id = self.find_album_id(album)
-    if album_id.nil?
+  def fetch_links
+    if @album_id.nil?
       puts "### No album id found for #{name}"
       exit 3
     end
 
-    @client.album.show(album_id).entries.each do |photo|
+    @client.album.show(@album_id).entries.each do |photo|
       self._put_photo_into_links(photo)
     end # client.album.show().entries
-    return links
+    return @links
   end # fetch_links
 
   def slide2gslide(line)
@@ -100,6 +103,16 @@ class ImagesFromPicasa
     @links.delete(jpg + suffix)
     return line
   end # slide2gslide
+
+  def print_links
+    if @links.empty?
+      puts "### All links processed"
+    else
+      puts "### Following anomalies found:"
+      puts @links
+    end # if
+  end # print_links
+
 end # class ImagesFromPicasa
 
 def find_post(name)
