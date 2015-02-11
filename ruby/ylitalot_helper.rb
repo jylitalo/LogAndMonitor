@@ -57,6 +57,9 @@ class ImagesFromPicasa
     puts "### Uploading photo #{fname} to #{@album_id}"
     begin
       photo = @client.photo.create(@album_id, file_path: fname)
+    rescue Errno::ENOENT
+      puts "### Unable to find file #{fname}"
+      raise
     rescue SystemCallError
       count += 1
       if count < 3
