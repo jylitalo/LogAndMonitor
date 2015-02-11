@@ -251,6 +251,7 @@ class AssetsFixer(AssetsFinder):
 
   def _validate_found(self,fname):
     # Setup
+    if fname == "/images/2014/03/P3260000_t.jpg": return False
     if not self._validate_original: return True
     original_fname = self._original_image(fname)
     if not original_fname:
@@ -276,6 +277,8 @@ class AssetsFixer(AssetsFinder):
 
   def _validate_missing(self,fname):
     # Setup
+    if fname == "/images/2014/03/P3260000_t.jpg":
+       return
     if not self._convert_missing: 
       AssetsFinder._validate_missing(self,fname)
       return
