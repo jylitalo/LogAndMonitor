@@ -63,25 +63,22 @@ puts("Missing PAD files: #{missing_pads.length}")
 # truncate number list with integer ranges
 ###
 missing_pads.sort()
-last = nil
-prev = nil
+last = prev = -1
 trunc_list = ""
 missing_pads.each do |cur|
-  if prev.nil?
-    trunc_list += "#{cur}"
-    prev = last = cur
-  elsif (prev+1) == cur
+  if (prev+1) == cur
     prev = cur
   elsif last < prev
-    trunc_list += "-#{prev}, #{last}"
+    trunc_list += "-#{prev}, #{cur}"
     prev = last = cur
   else
     trunc_list += ", #{cur}"
     prev = last = cur
   end # if
-  # puts "### #{prev} #{last} #{cur}"
+  # puts "### #{cur} #{last} #{prev}"
 end # missing_pads.each
 if last < prev
+  # puts "### add missing item #{prev} to list"
   trunc_list += "-#{prev}"
 end # if
-puts trunc_list
+puts trunc_list[1..-1]
