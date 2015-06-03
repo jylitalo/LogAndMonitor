@@ -18,7 +18,7 @@ class ImagesFromPicasa
   end # initialize
 
   def connect
-    @client = Picasa::Client.new(user_id: @user_id, password: @password)
+    @client = Picasa::Client.new(user_id: @user_id, authorization_header: "OAuth " + @password)
   end # connect
 
   def find_album_id(name)
