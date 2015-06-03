@@ -68,7 +68,7 @@ class AssetsFinder(Octopress):
     >>> a.dir("invalid")
     Traceback (most recent call last):
     ...
-    AssertionError: Source Directory (invalid) is missing sub-directories: _posts, images, assets
+    AssertionError: Source Directory (invalid) is missing sub-directories: _posts, _images, assets
     >>> from minimock import mock
     >>> mock('os.path.isdir',returns=True)
     >>> a.dir("valid")
@@ -76,7 +76,7 @@ class AssetsFinder(Octopress):
     valid
     """
     errors = []
-    for key in ["_posts","images"]:
+    for key in ["_posts","_images"]:
       if not os.path.isdir("%s/%s" % (dname,key)): errors.append(key)
     if errors:
       raise AssertionError("Source directory (%s) is missing sub-directories: %s" % (dir,", ".join(errors)))
@@ -110,6 +110,7 @@ class AssetsFinder(Octopress):
     if fname.startswith("/assets/jwplayer"): return True
     if fname.find("/.#") > -1: return True
     if fname.startswith("/images/") and fname.count('/') == 2: return True
+    if fname.startswith("/_images/") and fname.count('/') == 2: return True
     return False
 
   def _find_markdown_files(self):
@@ -170,6 +171,7 @@ class AssetsFinder(Octopress):
       f = open(fname)
       for line in f:
         for link in self._extract_from_markdown(line):
+          if link.startswith("/images/"): link = "/_images/" + link[8:]
           if link in self._linked: self._linked[link].append(url_name)
           else: self._linked[link] = [url_name]
       f.close()
@@ -217,14 +219,18 @@ class AssetsFinder(Octopress):
 
   def validate(self):
     found = set()
-    for key in ["assets","images"]: found.update(self._scan_tree("/%s/" % (key)))
+    for key in ["assets","_images"]: found.update(self._scan_tree("/" + key + "/"))
     linked = set(self._linked.keys())
     waste = list(found - linked)
     waste.sort()
+    # print(linked)
+    # print(waste)
     for fname in waste: self._validate_waste(fname)
     missing = list(linked - found)
     missing.sort()
-    for fname in missing: self._validate_missing(fname)
+    for fname in missing: 
+      if "/_images/" in fname: fname = fname.replace("/images/", "/_images/")
+      self._validate_missing(fname)
 
 class AssetsFixer(AssetsFinder):
   def __init__(self):
@@ -251,7 +257,7 @@ class AssetsFixer(AssetsFinder):
 
   def _validate_found(self,fname):
     # Setup
-    if fname == "/images/2014/03/P3260000_t.jpg": return False
+    if fname == "/_images/2014/03/P3260000_t.jpg": return False
     if not self._validate_original: return True
     original_fname = self._original_image(fname)
     if not original_fname:
@@ -277,7 +283,7 @@ class AssetsFixer(AssetsFinder):
 
   def _validate_missing(self,fname):
     # Setup
-    if fname == "/images/2014/03/P3260000_t.jpg":
+    if fname == "/_images/2014/03/P3260000_t.jpg":
        return
     if not self._convert_missing: 
       AssetsFinder._validate_missing(self,fname)
