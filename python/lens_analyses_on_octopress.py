@@ -23,11 +23,14 @@ class LensFromEXIF(object):
     tags = exifread.process_file(f, details=False)
     f.close()
 
-    fl = dt = lens = None
+    fl = dt = lens = camera = None
+    # k = tags.keys()
+    # k.sort()
+    # print("tags.keys=%s" % (k))
     if tags.has_key("EXIF DateTimeOriginal"): dt = tags["EXIF DateTimeOriginal"].values
     if tags.has_key("EXIF FocalLength"): fl = tags["EXIF FocalLength"].values[0].num
     if tags.has_key("EXIF LensModel"): lens = tags["EXIF LensModel"].values.strip()
-
+    if tags.has_key("Image Model"): camera = tags["Image Model"].values.strip()
     errmsg = None
     if not (dt or fl): errmsg = "DateTime and FocalLength are"
     elif not dt: errmsg = "DateTime is"
@@ -35,14 +38,21 @@ class LensFromEXIF(object):
     if errmsg: raise AssertionError(errmsg + " missing from " + img_name)
 
     dt = dt[:10].replace(':','-')
-    return dt,self._lens_name(fl,lens)
+    return dt,self._lens_name(fl,lens),self._camera_name(camera)
+
+  @staticmethod
+  def _camera_name(model):
+    if not model: pass
+    elif model in ("E-M1","E-M5"): return "Olympus OM-D " + model
+    return None
 
   @staticmethod
   def _lens_name(focal_length,lens):
     oly12 = "Olympus M.Zuiko 12mm f/2"
     pl25 = "Panasonic Leica DG Summilux 25mm f/1.4"
     oly60 = "Olympus M.Zuiko 60mm f/2.8 Macro"
-    lenses_by_model = { "OLYMPUS M.12-50mm F3.5-6.3" : "Olympus M.Zuiko 12-50mm f/3.5-6.3",
+    lenses_by_model = { "OLYMPUS M.12-40mm F2.8" : "Olympus M.Zuiko 12-40mm f/2.8",
+                        "OLYMPUS M.12-50mm F3.5-6.3" : "Olympus M.Zuiko 12-50mm f/3.5-6.3",
                         "OLYMPUS M.75-300mm F4.8-6.7 II" : "Olympus M.Zuiko 75-300mm f/4.8-6.7 II",
                         "OLYMPUS M.12mm F2.0" : oly12,
                         "LEICA DG SUMMILUX 25/F1.4" : pl25,
@@ -91,7 +101,7 @@ class LensAnalysesOnOctopress(LensFromEXIF):
           full_img_name = self.map_filename(img_name)
           assert os.access(full_img_name, os.R_OK), "Unable to read img_file (%s) from %s" % (img_name,fname)
           try:
-            dt,lens = self.process_file(full_img_name)
+            dt,lens, camera = self.process_file(full_img_name)
           except AssertionError: lens = "Missing"
           break
       f.close()
