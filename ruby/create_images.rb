@@ -3,6 +3,7 @@ require 'Picasa' # https://github.com/morgoth/picasa
 
 ###
 class PicasaInterface
+  attr_accessor: links
   ###
   def initialize(album)
     config_file = "#{Dir.home()}/.ylitalot"
@@ -94,14 +95,91 @@ class PicasaInterface
     end # client.album.show().entries
     return @links
   end # fetch_links
+end # class PicasaInterface
+
+###
+class JekyllPost
+  attr_accessor: album,name
+  ###
+  def initialize(name)
+    fnames = Dir.glob("_posts/*[0-9]-#{name}.markdown")
+    if fnames.length == 0
+      puts "No matching article found (searched for *[0-9]-#{name}.markdown"
+      exit 1
+    elsif fnames.length > 1
+      puts "Found more than one match (searched for *-#{name}.markdown and found #{fnames})"
+      exit 2
+    end
+    @name = name
+    @fname = fnames[0]
+    puts "### Found #{@fname}"
+
+    @album = get_album_name
+  end # initialize
 
   ###
-  def slide2gslide(line)
+  def get_album_name
+    ret = nil
+    fin = File.open(@fname)
+    fin.each_line do |line|
+      if line.start_with?("<!-- G+: ")
+        ret = line.split(" ")[2..-2].join(" ")
+        break
+      end # if
+    end # fin.each_line
+    fin.close
+    return ret
+  end # album_name
+
+  ###
+  def slides
+    ret = []
+    f = File.open(@fname)
+    f.each_line do |line|
+      if line.start_with?("{% slide /images")
+        ret += [extract_jpg(line)]
+      end # if
+    end # f.each_line
+    f.close
+    return ret
+  end # slides
+
+  ###
+  def slide2gslide(links)
+    new_fname = @fname + ".new"
+
+    fin = File.open(@fname)
+    fout = File.open(new_fname,"w")
+    fin.each_line do |line|
+      if line.start_with?("{% slide /images")
+        line = slide2gslide_line(line,links)
+      elsif line.start_with?("{% gslide /images")
+        slide2gslide_line(line,links)
+      end # if
+      fout.write(line) unless line.start_with?("<!-- G+: ")
+    end # fin.each_line
+    fout.write("\n<!-- G+: #{@album} -->\n")
+    fout.close
+    fin.close
+
+    File.unlink(@fname)
+    File.rename(new_fname,@fname)
+
+    if links.empty?
+      puts "### All links processed"
+    else
+      puts "### Following anomalies found:"
+      puts links
+    end # if
+  end # slide2gslide
+
+  ###
+  def slide2gslide_line(line,links)
     jpg = extract_jpg(line).split("/").last
     suffix = nil
-    if @links.has_key?(jpg + ".jpg")
+    if links.has_key?(jpg + ".jpg")
       suffix = ".jpg"
-    elsif @links.has_key?(jpg + ".JPG")
+    elsif links.has_key?(jpg + ".JPG")
       suffix = ".JPG"
     else
       puts "Unable to find G+ image for #{jpg}"
@@ -110,67 +188,18 @@ class PicasaInterface
 
     if line.start_with?("{% slide /images")
       line.sub! "{% slide ", "{% gslide "
-      line.sub! " %}", " #{@links[jpg + suffix]} %}"
+      line.sub! " %}", " #{links[jpg + suffix]} %}"
     end # if
-    @links.delete(jpg + suffix)
+    links.delete(jpg + suffix)
     return line
-  end # slide2gslide
+  end # slide2gslide_line
 
   ###
-  def print_links
-    if @links.empty?
-      puts "### All links processed"
-    else
-      puts "### Following anomalies found:"
-      puts @links
-    end # if
-  end # print_links
-end # class PicasaInterface
-
-###
-def find_post(name)
-  fnames = Dir.glob("_posts/*[0-9]-#{name}.markdown")
-  if fnames.length == 0
-    puts "No matching article found (searched for *[0-9]-#{name}.markdown"
-    exit 1
-  elsif fnames.length > 1
-    puts "Found more than one match (searched for *-#{name}.markdown and found #{fnames})"
-    exit 2
-  end
-  puts "### Found #{fnames[0]}"
-  return fnames[0]
-end # find_post
-
-###
-def find_album_name(post)
-  fin = File.open(post)
-  fin.each_line do |line|
-    if line.start_with?("<!-- G+: ")
-      fin.close
-      return line.split(" ")[2..-2].join(" ")
-    end # if
-  end # fin.each_line
-  fin.close
-end # find_album_name
-
-###
-def extract_jpg(line)
-  fields = line.split(" ")
-  return fields[2].split("/",3)[2]
-end # extract_jpg
-
-###
-def extract_slides(fname)
-  slides = []
-  f = File.open(fname)
-  f.each_line do |line|
-    if line.start_with?("{% slide /images")
-      slides += [extract_jpg(line)]
-    end # if
-  end # f.each_line
-  f.close
-  return slides
-end # extract_slides
+  def extract_jpg(line)
+    fields = line.split(" ")
+    return fields[2].split("/",3)[2]
+  end # extract_jpg
+end # JekyllPost
 
 ###
 def establish_target_dir(post_name)
@@ -201,28 +230,19 @@ def find_image(jpg)
   return image
 end # find_image
 
-post_name = ARGV[0]
-post_fname = find_post(post_name)
-if ARGV.length > 1
-  album_name = ARGV[1]
-  puts "### Album as argument: #{album_name}"
-else 
-  album_name = find_album_name(post_fname)
-  puts "### Album from post: #{album_name}"
-end # if
-
-### 
-# Create album into G+
 ###
-ifp = PicasaInterface.new album_name
+# main
+###
+post = Post.new ARGV[0]
+puts "### Album from post: #{post.album}"
+pi = PicasaInterface.new post.album
 
 ###
 # Find slides in a post, create images and upload them.
 ###
-slides = extract_slides(post_fname)
-target_dir = establish_target_dir(post_name)
+target_dir = establish_target_dir(post.name)
 
-slides.each do |jpg|
+post.slides.each do |jpg|
   fname = jpg.split("/").last
   original = find_image(jpg)
   img = "#{target_dir}/#{fname}.jpg"
@@ -235,27 +255,9 @@ slides.each do |jpg|
   File.unlink(img)
 end # slides.each
 
+
 ###
 # Fix links in post
 ###
-new_fname = post_fname + ".new"
-
-fin = File.open(post_fname)
-fout = File.open(new_fname,"w")
-fin.each_line do |line|
-  if line.start_with?("{% slide /images")
-    line = pi.slide2gslide(line)
-  elsif line.start_with?("{% gslide /images")
-    pi.slide2gslide(line)
-  end # if
-  fout.write(line) unless line.start_with?("<!-- G+: ")
-end # fin.each_line
-fout.write("\n<!-- G+: #{album_name} -->\n")
-fout.close
-fin.close
-
-File.unlink(post_fname)
-File.rename(new_fname,post_fname)
+post.slide2gslide(pi.links)
 Dir.rmdir(target_dir)
-
-pi.print_links
