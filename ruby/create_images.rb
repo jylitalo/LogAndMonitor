@@ -1,5 +1,5 @@
-require 'google/api_client'
-require 'signet'
+require "signet/oauth_2"
+require "signet/oauth_2/client"
 require 'yaml'
 require 'Picasa' # https://github.com/morgoth/picasa
 
@@ -11,9 +11,9 @@ class PicasaInterface
     config_file = "#{Dir.home()}/.ylitalot"
     config  = YAML.load_file(config_file)
     @user_id = config['picasa']['username']
-    @p12email = config['picasa']['p12email']
-    @p12file = config['picasa']['p12file']
-    @p12secret = config['picasa']['p12secret']
+    @client_id = config['picasa']['client_id']
+    @client_secret = config['picasa']['client_secret']
+    @refresh_token = config['picasa']['refresh_token']
     @links = {}
     connect
     @album_id = find_album_id album
@@ -26,18 +26,18 @@ class PicasaInterface
 
   ###
   def connect
-    c = Google::APIClient.new(:application_name => 'createImages',:application_version => '1.1')
-    puts "### p12file = #{@p12file}"
-    key = Google::APIClient::KeyUtils.load_from_pkcs12(@p12file, @p12secret)
-    c.authorization = Signet::OAuth2::Client.new(
-      :token_credential_uri => 'https://accounts.google.com/o/oauth2/token',
-      :audience => 'https://accounts.google.com/o/oauth2/token',
-      :scope => 'https://picasaweb.google.com/data/',
-      :issuer => @p12email,
-      :signing_key => key)
-    at = c.authorization.fetch_access_token!
-    puts "### access_token: #{at.to_s}"
-    @client = Picasa::Client.new(user_id: @user_id, authorization_header: "Bearer " + at["access_token"])
+    oauth2_client = Signet::OAuth2::Client.new(
+      authorization_uri: "https://accounts.google.com/o/oauth2/auth",
+      token_credential_uri: "https://accounts.google.com/o/oauth2/token",
+      client_id: @client_id,
+      client_secret: @client_secret,
+      redirect_uri: "urn:ietf:wg:oauth:2.0:oob",
+      scope: "https://picasaweb.google.com/data/",
+      expiry: 3600,
+      refresh_token: @refresh_token
+    )
+    oauth2_client.refresh!
+    @client = Picasa::Client.new(user_id: @user_id, authorization_header: "Bearer " + oauth2_client.access_token)
   end # connect
 
   ###
