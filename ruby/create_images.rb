@@ -1,15 +1,19 @@
+require 'google/api_client'
+require 'signet'
 require 'yaml'
 require 'Picasa' # https://github.com/morgoth/picasa
 
 ###
 class PicasaInterface
-  attr_accessor: links
+  attr_accessor :links
   ###
   def initialize(album)
     config_file = "#{Dir.home()}/.ylitalot"
     config  = YAML.load_file(config_file)
     @user_id = config['picasa']['username']
-    @password = config['picasa']['password']
+    @p12email = config['picasa']['p12email']
+    @p12file = config['picasa']['p12file']
+    @p12secret = config['picasa']['p12secret']
     @links = {}
     connect
     @album_id = find_album_id album
@@ -22,7 +26,18 @@ class PicasaInterface
 
   ###
   def connect
-    @client = Picasa::Client.new(user_id: @user_id, authorization_header: "OAuth " + @password)
+    c = Google::APIClient.new(:application_name => 'createImages',:application_version => '1.1')
+    puts "### p12file = #{@p12file}"
+    key = Google::APIClient::KeyUtils.load_from_pkcs12(@p12file, @p12secret)
+    c.authorization = Signet::OAuth2::Client.new(
+      :token_credential_uri => 'https://accounts.google.com/o/oauth2/token',
+      :audience => 'https://accounts.google.com/o/oauth2/token',
+      :scope => 'https://picasaweb.google.com/data/',
+      :issuer => @p12email,
+      :signing_key => key)
+    at = c.authorization.fetch_access_token!
+    puts "### access_token: #{at.to_s}"
+    @client = Picasa::Client.new(user_id: @user_id, authorization_header: "Bearer " + at["access_token"])
   end # connect
 
   ###
@@ -99,7 +114,7 @@ end # class PicasaInterface
 
 ###
 class JekyllPost
-  attr_accessor: album,name
+  attr_accessor :album,:name
   ###
   def initialize(name)
     fnames = Dir.glob("_posts/*[0-9]-#{name}.markdown")
@@ -233,7 +248,7 @@ end # find_image
 ###
 # main
 ###
-post = Post.new ARGV[0]
+post = JekyllPost.new ARGV[0]
 puts "### Album from post: #{post.album}"
 pi = PicasaInterface.new post.album
 
