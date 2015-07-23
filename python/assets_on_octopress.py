@@ -32,7 +32,7 @@ class Octopress(object):
     # Octopress
     if dir.endswith("/source"): return dir
     if dir.endswith("/source/_posts"): return dir[:dir.rfind('/')]
-    if os.access(dir + "/config.rg", os.R_OK) and os.access(dir + "/source",os.F_OK): 
+    if os.access(dir + "/config.rg", os.R_OK) and os.access(dir + "/source",os.F_OK):
       return dir + "/source"
     if "/source/" in dir: return dir[:dir.rfind('/source/')+len('/source')]
     # Jekyll
@@ -199,7 +199,7 @@ class AssetsFinder(Octopress):
       line = "(%s_t.jpg)" % (link)
     elif line.startswith("{% cover "):
       link = line.split(' ')[2]
-      line = "(%s_c.jpg)" % (link)
+      line = "(%s_t.jpg)(%s_c.jpg)" % (link,link)
 
     for key in ["images","assets"]:
       for field in line.split("(/" + key)[1:]:
@@ -214,7 +214,7 @@ class AssetsFinder(Octopress):
 
   def _validate_found(self, fname): return True
   def _validate_waste(self,fname): print("WASTE: '%s'" % (fname))
-  def _validate_missing(self, fname): 
+  def _validate_missing(self, fname):
     print("MISSING: '%s' (%s)" % (fname, ", ".join(self._linked[fname])))
 
   def validate(self):
@@ -228,7 +228,7 @@ class AssetsFinder(Octopress):
     for fname in waste: self._validate_waste(fname)
     missing = list(linked - found)
     missing.sort()
-    for fname in missing: 
+    for fname in missing:
       if "/_images/" in fname: fname = fname.replace("/images/", "/_images/")
       self._validate_missing(fname)
 
@@ -285,7 +285,7 @@ class AssetsFixer(AssetsFinder):
     # Setup
     if fname == "/_images/2014/03/P3260000_t.jpg":
        return
-    if not self._convert_missing: 
+    if not self._convert_missing:
       AssetsFinder._validate_missing(self,fname)
       return
     original_fname = self._original_image(fname)
