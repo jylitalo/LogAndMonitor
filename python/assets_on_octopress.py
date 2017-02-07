@@ -81,7 +81,7 @@ class AssetsFinder(Octopress):
         for key in ["_posts","_images"]:
             if not os.path.isdir("%s/%s" % (dname,key)): errors.append(key)
         if errors:
-            raise AssertionError("Source directory (%s) is missing sub-directories: %s" % (dir,", ".join(errors)))
+            raise AssertionError("Source directory (%s) is missing sub-directories: %s" % (dname,", ".join(errors)))
         self._dir = dname
     # end of dif(self, dname)
 
@@ -163,10 +163,12 @@ class AssetsFinder(Octopress):
         else: return os.path.basename(fname)
     # end of get_url(fname)
 
-    def scan(self):
-        self.dir = self.find_source_dir()
+    def scan(self, dir=os.getcwd()):
+        self.dir = self.find_source_dir(dir)
         print("### using %s as root directory" % (self.dir))
         fnames = self._find_markdown_files()
+        img = "/images/"
+        imglen = len(img)
         if not fnames:
             raise AssertionError("Unable to find any markdown files from " + self.dir)
         print("### processing %d markdown files" % (len(fnames)))
@@ -174,18 +176,22 @@ class AssetsFinder(Octopress):
             url_name = self.get_url(fname)
             if url_name in self._url_names:
                 raise AssertionError("Found duplicate url on following files: %s, %s" % (self._url_names[url_name],fname))
-        self._url_names[url_name] = fname
-        f = open(fname)
-        slides_found = False
-        for line in f:
-            if not slides_found and line.startswith("{% slide "):
-                self._slides_in.append(fname)
-                slides_found = True
-            for link in self._extract_from_markdown(line):
-                if link.startswith("/images/"): link = "/_images/" + link[8:]
-                if link in self._linked: self._linked[link].append(url_name)
-                else: self._linked[link] = [url_name]
-        f.close()
+            # end of if url_name in ...
+            self._url_names[url_name] = fname
+            f = open(fname)
+            slides_found = False
+            for line in f:
+                if not slides_found and line.startswith("{% slide "):
+                    self._slides_in.append(fname)
+                    slides_found = True
+                for link in self._extract_from_markdown(line):
+                    if link.startswith(img): link = "/_images/" + link[imglen:]
+                    if link in self._linked: self._linked[link].append(url_name)
+                    else: self._linked[link] = [url_name]
+                # end of for link in
+            # end of for line in ...
+            f.close()
+        # end of for fname in ...
     # end of scan(self)
 
     @staticmethod
@@ -212,16 +218,19 @@ class AssetsFinder(Octopress):
         elif line.startswith("{% cover "):
             link = line.split(' ')[2]
             line = "(%s_t.jpg)(%s_c.jpg)" % (link,link)
+        # end of if line.startswith ...
 
         for key in ["images","assets"]:
             for field in line.split("(/" + key)[1:]:
                 field = "/%s%s" % (key,field[:field.find(')')])
                 if ' "' in field: field = field[:field.find(' "')]
                 links.append(field)
+            # end of for field in ...
             for c in [' ','"',"'"]:
                 for field in line.split("%s/%s" % (c,key))[1:]:
                     field = "/" + key + field[:field.find(c,1)]
                     links.append(field)
+            # end of for c in ...
         return links
     # end of _extract_from_markdown(line)
 
@@ -240,7 +249,7 @@ class AssetsFinder(Octopress):
         missing = list(linked - found)
         missing.sort()
         for fname in missing:
-            if "/_images/" in fname: fname = fname.replace("/images/", "/_images/")
+            if "/images/" in fname: fname = fname.replace("/images/", "/_images/")
             self._validate_missing(fname)
         if self._slides_in:
             print "!!! slide plugin used in following files:"
@@ -314,7 +323,7 @@ class AssetsFixer(AssetsFinder):
         dname = os.path.dirname(full_fname)
         if not os.access(dname,os.F_OK): os.makedirs(dname)
         assert os.access(dname,os.W_OK), "need write access to " + dname
-        print("### images for: " + ",".join(self._linked[fname]))
+        # print("### images for: " + ",".join(self._linked[fname]))
         if fname.endswith("_t.jpg"):
             cmdline = "convert -thumbnail 150x150^ -gravity center -extent 150x150 %s %s" % (original_fname,full_fname)
             print("### " + cmdline)
@@ -325,6 +334,7 @@ class AssetsFixer(AssetsFinder):
             self._resize_image(original_fname,full_fname,"1280x800")
         else:
             print("### unknown suffix on " + fname)
+        # end of if fname.endswith ...
     # end of _validate_missing(self, fname)
 
     def validate(self):

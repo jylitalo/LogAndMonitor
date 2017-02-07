@@ -2,7 +2,8 @@ require "signet/oauth_2"
 require "signet/oauth_2/client"
 require 'yaml'
 require 'Picasa' # https://github.com/morgoth/picasa
-
+require 'openssl'
+OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 ###
 class PicasaInterface
   attr_accessor :links, :delete
@@ -158,10 +159,10 @@ class JekyllPost
   def initialize(name)
     fnames = Dir.glob("_posts/*[0-9]-#{name}.markdown")
     if fnames.length == 0
-      puts "No matching article found (searched for *[0-9]-#{name}.markdown"
+      puts "No matching article found (searched for _posts/*[0-9]-#{name}.markdown)"
       exit 1
     elsif fnames.length > 1
-      puts "Found more than one match (searched for *-#{name}.markdown and found #{fnames})"
+      puts "Found more than one match (searched for _posts/*-#{name}.markdown and found #{fnames})"
       exit 2
     end # if
     @name = name
@@ -190,11 +191,23 @@ class JekyllPost
   end # JekyllPost.album_name
 
   ###
+  def has_slide?(line)
+    if line.start_with?("{% slide /images")
+      return true
+    elsif /^{% gslide \/images.* https:/.match(line)
+      return true
+    elsif line.start_with?("{% gslide /images")
+      puts "https missing from #{line.strip()}"
+    end
+    return false
+  end # has_slide?
+
+  ###
   def slides
     ret = []
     f = File.open(@fname)
     f.each_line do |line|
-      if line.start_with?("{% slide /images") or line.start_with?("{% gslide /images")
+      if self.has_slide?(line)
         ret += [extract_jpg(line)]
       end # if
     end # f.each_line
@@ -210,7 +223,7 @@ class JekyllPost
     fin = File.open(@fname)
     fout = File.open(new_fname,"w")
     fin.each_line do |line|
-      if line.start_with?("{% slide /images") or line.start_with?("{% gslide /images")
+      if self.has_slide?(line)
         line = slide2gslide_line(line,links)
       end # if
       fout.write(line) unless line.start_with?("<!-- G+")
@@ -225,7 +238,7 @@ class JekyllPost
 
   ###
   def slide2gslide_line(line,links)
-    jpg = extract_jpg(line).split("/").last + ".jpg"
+    jpg = extract_jpg(line).split("/").last
     if not links.has_key?(jpg)
       puts "Unable to find G+ image for #{jpg}"
       return line
@@ -234,9 +247,13 @@ class JekyllPost
     key = links[jpg][0]
     if line.start_with?("{% slide /images")
       line.sub! "{% slide ", "{% gslide "
-      line.sub! " %}", " #{key} %}"
+      line.sub! " %}", " #{key}.jpg %}"
     elsif line.start_with?("{% gslide /images")
-      line.sub! /https:[^ ]+/, "#{key}"
+      if /https:/.match(line)
+        line.sub! /https:[^ ]+/, "#{key}.jpg"
+      else
+        puts "https missing from '#{line.strip()}'"
+      end # if
     end # if
     links.delete(jpg)
     # puts "--- #{links.length} still left"
@@ -280,6 +297,31 @@ def find_image(jpg)
 end # find_image
 
 ###
+def process_jpg(pic, uploaded, target_dir, jpg)
+  fname = jpg.split("/").last
+  original = find_image(jpg)
+  if not original
+    return false
+  end
+  mtime = File.new(original).mtime.to_i
+  if pic.links.has_key?(fname) and mtime > uploaded
+    puts "+++ Deleting old version of #{fname} #{mtime} > #{uploaded}"
+    pic.delete_photo(fname)
+  end
+  if not pic.links.has_key?(fname)
+    img = "#{target_dir}/#{fname}.jpg"
+    unless File.exists?(img)
+      cmd = "convert -resize 2000x2000 #{original} #{img}"
+      puts "### #{cmd}"
+      system cmd
+    end # unless File.exists?(img)
+    pic.send_photo(img)
+    File.unlink(img)
+  end # if
+  return true
+end # process_jpg
+
+###
 # main
 ###
 post = JekyllPost.new ARGV[0]
@@ -293,27 +335,17 @@ end
 ###
 # Find slides in a post, create images and upload them.
 ###
+slides = post.slides
+if slides.length == 0
+  puts "no slides found. Doing exit"
+  exit 6
+end
 target_dir = establish_target_dir(post.name)
-
-post.slides.each do |jpg|
-  fname = jpg.split("/").last + ".jpg"
-  original = find_image(jpg)
-  mtime = File.new(original).mtime.to_i
-  if pi.links.has_key?(fname)
-    # puts "--- mtime #{mtime} vs. #{post.uploaded} on #{fname}"
-    if mtime > post.uploaded
-      pi.delete_photo(fname)
-    end # if picasa image should be replaced
-  end
-  if not pi.links.has_key?(fname)
-    img = "#{target_dir}/#{fname}"
-    unless File.exists?(img)
-      cmd = "convert -resize 2000x2000 #{original} #{img}"
-      puts "### #{cmd}"
-      system cmd
-    end # unless File.exists?(img)
-    pi.send_photo(img)
-    File.unlink(img)
+slides.each do |jpg|
+  if not process_jpg(pi, post.uploaded, target_dir, jpg)
+    puts "+++ original file #{jpg} not found."
+    puts "Exiting!"
+    exit 5
   end # if
 end # slides.each
 
